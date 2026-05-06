@@ -123,6 +123,8 @@ export default function GameScreen() {
     haptic('light')
     setDrinkCmd('spin')
     setTipCmd('idle')
+    setTipResult(null)
+    setDrinkResult(null)
 
     // ─ Compute result immediately ─
     const { tip, drink } = spinSlots(store.config, store.consecutiveLow)
@@ -149,13 +151,13 @@ export default function GameScreen() {
 
     // ── Timeline ──
 
-    // 1.4 s - DRINK 릴 감속 시작
+    // 2.0 s - DRINK 릴 감속 시작 (충분한 고속 회전 후)
     later(() => {
       setDrinkResult(drink)
       setDrinkCmd('decel')
-    }, 1400)
+    }, 2000)
 
-    // 2.8 s - DRINK 착지 확정 + TIP 릴 단독 시작
+    // 5.0 s - DRINK 착지 확정 (감속 3초)
     later(() => {
       setDrinkCmd('revealed')
       setPhase('drinkRevealed')
@@ -163,21 +165,21 @@ export default function GameScreen() {
       haptic('light')
       if (drink === 'p100') playSound('siren')
       else if (drink === 'p70') playSound('warning_beep')
-    }, 2800)
+    }, 5000)
 
-    // 3.6 s - TIP 릴 단독 고속 회전 시작
+    // 6.2 s - TIP 릴 단독 고속 회전 시작 (1.2초 압박 정지 후)
     later(() => {
       setTipCmd('spin')
       stopDrumroll()
-    }, 3600)
+    }, 6200)
 
-    // 4.4 s - TIP 릴 감속 시작
+    // 8.2 s - TIP 릴 감속 시작 (2초 고속 회전 후)
     later(() => {
       setTipResult(tip)
       setTipCmd('decel')
-    }, 4400)
+    }, 8200)
 
-    // 5.8 s - TIP 착지 확정
+    // 12.0 s - TIP 착지 확정 (감속 ~3.8초)
     later(() => {
       setTipCmd('revealed')
       setPhase('tipRevealed')
@@ -185,7 +187,7 @@ export default function GameScreen() {
       setNearMissDrink(null)
       playSound('slot_stop')
       haptic('light')
-    }, 5800)
+    }, 12000)
 
         // 2.8 s + celebDelay — celebration effects
     later(() => {
@@ -259,7 +261,7 @@ export default function GameScreen() {
         setShowParticles('fire')
         haptic('continuous', 800)
       }
-    }, 4400 + celebDelay)
+    }, 12800 + celebDelay)
 
     // 3.5 s + celebDelay — billboard
     later(() => {
@@ -278,7 +280,7 @@ export default function GameScreen() {
           later(() => setShowBeerSuggestion(false), 3000)
         }, 400)
       }
-    }, 5100 + celebDelay)
+    }, 13600 + celebDelay)
 
     // 4.2 s + celebDelay — compass + mission
     later(() => {
@@ -302,7 +304,7 @@ export default function GameScreen() {
           later(() => store.setShowMission(true), 3000)
         }
       }
-    }, 5800 + celebDelay)
+    }, 14400 + celebDelay)
 
     // Re-spin: auto-reset after billboard
     if (drink === 'respin') {
@@ -310,7 +312,7 @@ export default function GameScreen() {
         playSound('respin')
         store.setShowBillboard(false)
         later(() => resetToIdle(), 600)
-      }, 5500 + celebDelay)
+      }, 13200 + celebDelay)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, store])
@@ -322,6 +324,7 @@ export default function GameScreen() {
     setDrinkCmd('idle')
     setTipCmd('idle')
     setFlashColor(null)
+    // 결과값은 다음 스핀 시작 시 초기화 (이전 결과 화면 유지)
     setCoinRainCount(0)
     setShowParticles(null)
     setQuestionMode(false)
