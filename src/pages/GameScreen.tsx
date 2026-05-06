@@ -8,7 +8,7 @@ import {
   spinSlots, getCompassTarget, shouldTriggerMission,
   getMissionLevel, getEscalationParams,
 } from '../lib/casino'
-import { startDrumroll, stopDrumroll, playSound, haptic, torchStrobe } from '../lib/sounds'
+import { startDrumroll, stopDrumroll, startTipTension, stopTipTension, playSound, haptic, torchStrobe } from '../lib/sounds'
 import {
   TIP_VALUES, getTipTier, DRINK_REEL_ORDER, TIP_REEL_ORDER,
   type TipResult, type DrinkResult,
@@ -64,6 +64,7 @@ export default function GameScreen() {
   const [showSocialProof, setShowSocialProof] = useState(false)
   const [coinRainCount, setCoinRainCount]   = useState(0)
   const [questionMode, setQuestionMode]     = useState(false)
+  const [teaseMessage, setTeaseMessage]     = useState<string | null>(null)
   const [showBeerSuggestion, setShowBeerSuggestion] = useState(false)
 
   // ── Timeout manager ──
@@ -172,10 +173,11 @@ export default function GameScreen() {
       setQuestionMode(true)
     }, 5800)
 
-    // 6.5 s - TIP 릴 단독 고속 회전 시작
+    // 6.5 s - TIP 릴 단독 고속 회전 시작 + 긴장 BGM
     later(() => {
       setTipCmd('spin')
       stopDrumroll()
+      startTipTension()
     }, 6500)
 
     // 8.5 s - TIP 릴 감속 시작 (2초 고속 회전 후)
@@ -189,6 +191,7 @@ export default function GameScreen() {
       setTipCmd('revealed')
       setPhase('tipRevealed')
       setQuestionMode(false)
+      stopTipTension()
       setNearMissTip(null)
       setNearMissDrink(null)
       playSound('slot_stop')
@@ -222,15 +225,22 @@ export default function GameScreen() {
         case 'nothing':
           triggerFlash('#222222', 1)
           playSound('sad_trombone')
+          haptic('medium')
+          later(() => setTeaseMessage(t('teaseNothing')), 200)
+          later(() => setTeaseMessage(null), 3000)
           break
         case 'low':
           triggerFlash('#FFFFFF', 1)
           playSound('coin_single')
+          later(() => setTeaseMessage(t('teaseLow')), 200)
+          later(() => setTeaseMessage(null), 3000)
           break
         case 'mid':
           triggerFlash('#C0C0C0', 1)
           playSound('coin_cascade')
           setCoinRainCount(5)
+          later(() => setTeaseMessage(t('teaseMid')), 200)
+          later(() => setTeaseMessage(null), 3000)
           break
         case 'mid-high':
           triggerFlash('#FFD700', 1)
@@ -329,11 +339,13 @@ export default function GameScreen() {
     setDrinkResult(null)
     setDrinkCmd('idle')
     setTipCmd('idle')
+    stopTipTension()
     setFlashColor(null)
     // 결과값은 다음 스핀 시작 시 초기화 (이전 결과 화면 유지)
     setCoinRainCount(0)
     setShowParticles(null)
     setQuestionMode(false)
+    setTeaseMessage(null)
   }
 
   // ── Billboard dismiss ──
@@ -426,6 +438,28 @@ export default function GameScreen() {
               style={{ textShadow: '0 0 20px #FFD700, 0 0 40px #FF8C00' }}
             >
               💰 TIP...?!
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* 약올리기 / 축하 메시지 */}
+        <AnimatePresence>
+          {teaseMessage && (
+            <motion.div
+              key="tease"
+              initial={{ scale: 0.5, opacity: 0, y: 20 }}
+              animate={{ scale: [0.5, 1.2, 1], opacity: 1, y: 0 }}
+              exit={{ scale: 0.8, opacity: 0, y: -10 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+              className="font-noto font-extrabold text-center text-lg px-5 py-3 rounded-2xl border-2"
+              style={{
+                borderColor: teaseMessage.includes('😂') || teaseMessage.includes('ㅋ') || teaseMessage.includes('ha') ? '#ef4444' : '#FFD700',
+                background:  teaseMessage.includes('😂') || teaseMessage.includes('ㅋ') || teaseMessage.includes('ha') ? '#ef444422' : '#FFD70022',
+                color:       teaseMessage.includes('😂') || teaseMessage.includes('ㅋ') || teaseMessage.includes('ha') ? '#ef4444' : '#FFD700',
+                boxShadow:   teaseMessage.includes('😂') || teaseMessage.includes('ㅋ') || teaseMessage.includes('ha') ? '0 0 20px #ef444455' : '0 0 20px #FFD70055',
+              }}
+            >
+              {teaseMessage}
             </motion.div>
           )}
         </AnimatePresence>

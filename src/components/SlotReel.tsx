@@ -268,9 +268,9 @@ const SlotReel: React.FC<SlotReelProps> = ({
             const isCenter = i === CENTER
             const iColor   = colorOf(type, item)
             const dist     = Math.abs(i - CENTER)
-            const blur     = revealed ? 0 : dist * 2.5
+            const blur     = 0
             const scale    = isCenter && revealed ? 1.15 : 1
-            const opacity  = isCenter ? 1 : Math.max(0.15, 1 - dist * 0.32)
+            const opacity  = isCenter ? 1 : Math.max(0.55, 1 - dist * 0.15)
 
             return (
               <div
