@@ -5,23 +5,16 @@ import LanguageDetector from 'i18next-browser-languagedetector'
 
 const ko = {
   translation: {
-    // Language select
     selectLanguage: '언어를 선택하세요',
     langKo: '한국어',
     langEn: 'English',
     langVi: 'Tiếng Việt',
-
-    // Categories
     beerClub: '🍺 Beer Club',
     karaoke: '🎤 Karaoke',
     adult: '🔞 Adult',
-
-    // Spin
     spin: '🎰 SPIN!',
     spinning: '...',
     spinAgain: '한 번 더?',
-
-    // Player count
     playerCount: '인원',
     playerCountLabel: '👥 인원 {{count}}명',
     playerCountChanged: '👥 인원 {{count}}명으로 변경됨',
@@ -29,48 +22,30 @@ const ko = {
     minMax: '최소 2명 / 최대 20명',
     confirm: '확인',
     cancel: '취소',
-
-    // Adult PIN
     adultPinTitle: '🔞 성인 모드',
     adultPinDesc: '4자리 PIN을 입력하세요',
     adultPinError: '잘못된 PIN입니다',
     enterPin: 'PIN 입력',
-
-    // Results
     nothing: '꽝',
     jackpot: '💥 JACKPOT!',
     jackpotAmount: '500,000₫',
-    jackpotShot: '🍺 원샷 확정!',
-    cursed: '💀 저주받은 {{amount}}동!',
+    jackpotShot: '🍺 100% 원샷 확정!',
+    cursed: '💀 저주받은 {{amount}}₫!',
     curseBottom: '오늘 운 다 썼네요 😂',
-
-    // Drink labels
-    p25: '🍺 한모금',
-    p50: '🍺🍺 반잔',
-    p70: '🍺🍺🍺 칠할',
-    p100: '🍺🍺🍺🍺 원샷!!',
-    respin: '🔄 한 번 더!',
+    p25:    '🍺 25%',
+    p50:    '🍺🍺 50%',
+    p70:    '🍺🍺🍺 70%',
+    p100:   '🍺🍺🍺🍺 100%',
+    respin: '🔄 RESPIN',
     respinSub: '아직 안 끝났다!',
-
-    // Streak
     lowStreak: '💀 {{count}}번 연속 소액...',
     highStreak: '🔥 {{count}}번 연속 고액!',
-
-    // Compass
     compassTitle: '👉',
     compassTarget: '👉 {{direction}}!',
-
-    // Mission
     missionTitle: '🎯 미션!',
     missionComplete: '미션 완료!',
-
-    // Social proof
     jackpotProof: '🎰 오늘 이 테이블 {{count}}번째 잭팟!',
-
-    // Beer club special
     noJackpotYet: '🔥 아직 잭팟 안 나왔어요!',
-
-    // Settings
     settings: '설정',
     soundSettings: '사운드',
     masterVolume: '마스터 볼륨',
@@ -79,14 +54,10 @@ const ko = {
     language: '언어',
     changeLanguage: '언어 변경',
     adminLogin: '관리자 로그인',
-
-    // PWA install
     installApp: '홈 화면에 추가',
     installDesc: 'Lucky Club Master를 홈 화면에 추가하세요',
     install: '추가',
     later: '나중에',
-
-    // Admin
     admin: '관리자',
     adminDashboard: '관리자 대시보드',
     login: '로그인',
@@ -94,8 +65,6 @@ const ko = {
     email: '이메일',
     password: '비밀번호',
     loginError: '로그인 실패',
-
-    // Admin sections
     probabilities: '확률 설정',
     tipSlot: '팁 슬롯',
     drinkSlot: '음료 슬롯',
@@ -103,7 +72,6 @@ const ko = {
     resetDefault: '기본값으로 초기화',
     save: '저장',
     saved: '저장됨',
-
     missionManager: '미션 관리',
     karaokeMode: '노래방 모드',
     adultMode: '성인 모드',
@@ -114,7 +82,6 @@ const ko = {
     editMission: '미션 수정',
     deleteMission: '삭제',
     levelEnabled: '레벨 활성화',
-
     gameSettings: '게임 설정',
     jackpotForcedShot: '잭팟 시 원샷 강제',
     reSpinEnabled: '한번더 활성화',
@@ -124,18 +91,14 @@ const ko = {
     autoBillboard: '자동 빌보드 모드',
     changePIN: 'PIN 변경',
     newPIN: '새 PIN (4자리)',
-
     statistics: '통계',
     todaySpins: '오늘 총 스핀',
     todayTip: '오늘 총 팁',
     todayJackpots: '오늘 잭팟',
     mostCommon: '최다 결과',
-
     clubManagement: '클럽 관리',
     addClub: '클럽 추가',
     clubName: '클럽 이름',
-
-    // Tip amounts
     tipNothing: '꽝',
     tip1k: '1,000₫',
     tip2k: '2,000₫',
@@ -146,15 +109,12 @@ const ko = {
     tip100k: '100,000₫',
     tip200k: '200,000₫',
     tip500k: '500,000₫ 💥',
-
-    // Directions
     opposite: '맞은편',
     leftSide: '왼쪽',
     rightSide: '오른쪽',
-
-    // Billboard dismiss
     tapToDismiss: '탭하여 닫기',
     holdForJackpot: '잭팟은 직접 닫아주세요',
+    dismiss: '닫기',
   }
 }
 
@@ -176,7 +136,7 @@ const en = {
     setPlayerCount: 'Set Player Count',
     minMax: 'Min 2 / Max 20',
     confirm: 'Confirm',
-    cancel: 'Cancel',
+    cancel: 'Close',
     adultPinTitle: '🔞 Adult Mode',
     adultPinDesc: 'Enter 4-digit PIN',
     adultPinError: 'Wrong PIN',
@@ -184,14 +144,14 @@ const en = {
     nothing: 'Nothing',
     jackpot: '💥 JACKPOT!',
     jackpotAmount: '500,000₫',
-    jackpotShot: '🍺 SHOTGUN!',
+    jackpotShot: '🍺 100% SHOT!',
     cursed: '💀 Cursed {{amount}}₫!',
     curseBottom: 'All luck used up today 😂',
-    p25: '🍺 Sip 25%',
-    p50: '🍺🍺 Half 50%',
-    p70: '🍺🍺🍺 70%',
-    p100: '🍺🍺🍺🍺 SHOT!!',
-    respin: '🔄 One More!',
+    p25:    '🍺 25%',
+    p50:    '🍺🍺 50%',
+    p70:    '🍺🍺🍺 70%',
+    p100:   '🍺🍺🍺🍺 100%',
+    respin: '🔄 RESPIN',
     respinSub: "It's not over yet!",
     lowStreak: '💀 {{count}} low in a row...',
     highStreak: '🔥 {{count}} high in a row!',
@@ -269,6 +229,7 @@ const en = {
     rightSide: 'Right',
     tapToDismiss: 'Tap to dismiss',
     holdForJackpot: 'Dismiss jackpot manually',
+    dismiss: 'Close',
   }
 }
 
@@ -290,7 +251,7 @@ const vi = {
     setPlayerCount: 'Số người chơi',
     minMax: 'Tối thiểu 2 / Tối đa 20',
     confirm: 'Xác nhận',
-    cancel: 'Hủy',
+    cancel: 'Đóng',
     adultPinTitle: '🔞 Chế Độ Người Lớn',
     adultPinDesc: 'Nhập PIN 4 chữ số',
     adultPinError: 'PIN sai',
@@ -298,14 +259,14 @@ const vi = {
     nothing: 'Trượt',
     jackpot: '💥 JACKPOT!',
     jackpotAmount: '500,000₫',
-    jackpotShot: '🍺 Uống cạn!',
+    jackpotShot: '🍺 100% Uống cạn!',
     cursed: '💀 Xui {{amount}}₫!',
     curseBottom: 'Hết vận may hôm nay rồi 😂',
-    p25: '🍺 Nhấp 25%',
-    p50: '🍺🍺 Nửa ly 50%',
-    p70: '🍺🍺🍺 70%',
-    p100: '🍺🍺🍺🍺 Uống cạn!!',
-    respin: '🔄 Quay Thêm!',
+    p25:    '🍺 25%',
+    p50:    '🍺🍺 50%',
+    p70:    '🍺🍺🍺 70%',
+    p100:   '🍺🍺🍺🍺 100%',
+    respin: '🔄 RESPIN',
     respinSub: 'Chưa kết thúc!',
     lowStreak: '💀 {{count}} lần liên tiếp thấp...',
     highStreak: '🔥 {{count}} lần liên tiếp cao!',
@@ -383,6 +344,7 @@ const vi = {
     rightSide: 'Phải',
     tapToDismiss: 'Chạm để tắt',
     holdForJackpot: 'Tắt jackpot thủ công',
+    dismiss: 'Đóng',
   }
 }
 

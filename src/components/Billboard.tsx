@@ -2,55 +2,79 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import { TipResult, DrinkResult, TIP_VALUES, getTipTier, DRINK_LABELS } from '../types/game'
+import { TipResult, DrinkResult, TIP_VALUES, getTipTier } from '../types/game'
 import { useGameStore } from '../store/gameStore'
 
 interface BillboardProps {
-  tipResult: TipResult
-  drinkResult: DrinkResult
-  onDismiss: () => void
+  tipResult:        TipResult
+  drinkResult:      DrinkResult
+  onDismiss:        () => void
   onJackpotDismiss: () => void
-  onSpinAgain?: () => void
+  onSpinAgain?:     () => void
 }
 
-export default function Billboard({ tipResult, drinkResult, onDismiss, onJackpotDismiss, onSpinAgain }: BillboardProps) {
-  const { t } = useTranslation()
-  const tier = getTipTier(tipResult)
-  const amount = TIP_VALUES[tipResult]
-  const isJackpot = tier === 'jackpot'
-  const isCurse = tier === 'curse'
-  const isHigh = tier === 'high'
+export default function Billboard({
+  tipResult, drinkResult, onDismiss, onJackpotDismiss, onSpinAgain,
+}: BillboardProps) {
+  const { t }   = useTranslation()
+  const store   = useGameStore()
+  const config  = store.config
+  const tier    = getTipTier(tipResult)
+  const amount  = TIP_VALUES[tipResult]
+  const isJackpot  = tier === 'jackpot'
+  const isCurse    = tier === 'curse'
+  const isHigh     = tier === 'high'
+
+  // forcedShot 로직: jackpotForcedShot 또는 TIP별 forcedShot ON이면 100% 원샷 강제
+  const isForcedShot =
+    (isJackpot && config.jackpotForcedShot) ||
+    (config.forcedShot?.[tipResult] ?? false)
+
+  // forcedShot이면 drinkResult 표시를 p100으로 강제
+  const displayDrink: DrinkResult = isForcedShot ? 'p100' : drinkResult
 
   const bgColor = (() => {
     if (isJackpot) return '#000'
-    if (isCurse) return '#1a0000'
-    if (isHigh) return '#0a0800'
+    if (isCurse)   return '#1a0000'
+    if (isHigh)    return '#0a0800'
     if (tier === 'mid-high') return '#0a0800'
     return '#050505'
   })()
 
   const mainColor = (() => {
     if (isJackpot) return '#FFD700'
-    if (isCurse) return '#FF0000'
-    if (isHigh) return '#FFD700'
+    if (isCurse)   return '#FF0000'
+    if (isHigh)    return '#FFD700'
     if (tier === 'mid-high') return '#FFD700'
-    if (tier === 'mid') return '#C0C0C0'
+    if (tier === 'mid')      return '#C0C0C0'
     return '#FFFFFF'
   })()
 
   const drinkColor = (() => {
-    switch (drinkResult) {
-      case 'p100': return '#FF4500'
-      case 'p70': return '#FF6B00'
-      case 'p50': return '#FFA500'
-      case 'p25': return '#87CEEB'
+    switch (displayDrink) {
+      case 'p100':   return '#FF4500'
+      case 'p70':    return '#FF6B00'
+      case 'p50':    return '#FFA500'
+      case 'p25':    return '#87CEEB'
       case 'respin': return '#39FF14'
-      default: return '#FFFFFF'
+      default:       return '#FFFFFF'
     }
   })()
 
   const formatAmount = (n: number) =>
     n === 0 ? t('nothing') : `${n.toLocaleString()}₫`
+
+  // 언어별 drink 라벨 (i18n 사용)
+  const drinkLabel = (() => {
+    switch (displayDrink) {
+      case 'p25':    return t('p25')
+      case 'p50':    return t('p50')
+      case 'p70':    return t('p70')
+      case 'p100':   return t('p100')
+      case 'respin': return t('respin')
+      default:       return ''
+    }
+  })()
 
   return (
     <motion.div
@@ -61,36 +85,44 @@ export default function Billboard({ tipResult, drinkResult, onDismiss, onJackpot
       style={{ background: bgColor }}
       onClick={isJackpot ? undefined : onDismiss}
     >
-      {/* Jackpot: full screen flash animation */}
+      {/* 잭팟 플래시 */}
       {isJackpot && (
         <motion.div
           className="absolute inset-0 pointer-events-none"
-          animate={{ backgroundColor: ['#000', '#FFD700', '#000', '#FFD700', '#000'] }}
+          animate={{ backgroundColor: ['#000','#FFD700','#000','#FFD700','#000'] }}
           transition={{ duration: 1.0, times: [0, 0.1, 0.2, 0.3, 0.4] }}
         />
       )}
 
-      {/* High tier: pulsing neon border */}
+      {/* 고액 네온 테두리 */}
       {(isHigh || isJackpot) && (
         <motion.div
           className="absolute inset-0 pointer-events-none"
-          animate={{ boxShadow: [`inset 0 0 40px ${mainColor}60`, `inset 0 0 80px ${mainColor}90`, `inset 0 0 40px ${mainColor}60`] }}
+          animate={{ boxShadow: [
+            `inset 0 0 40px ${mainColor}60`,
+            `inset 0 0 80px ${mainColor}90`,
+            `inset 0 0 40px ${mainColor}60`,
+          ]}}
           transition={{ duration: 0.8, repeat: Infinity }}
         />
       )}
 
-      {/* Flame border for 100% drink */}
-      {drinkResult === 'p100' && (
+      {/* p100 불꽃 테두리 */}
+      {displayDrink === 'p100' && (
         <motion.div
           className="absolute inset-0 pointer-events-none"
-          animate={{ boxShadow: ['inset 0 0 30px rgba(255,69,0,0.6)', 'inset 0 0 60px rgba(255,140,0,0.9)', 'inset 0 0 30px rgba(255,69,0,0.6)'] }}
+          animate={{ boxShadow: [
+            'inset 0 0 30px rgba(255,69,0,0.6)',
+            'inset 0 0 60px rgba(255,140,0,0.9)',
+            'inset 0 0 30px rgba(255,69,0,0.6)',
+          ]}}
           transition={{ duration: 0.3, repeat: Infinity }}
         />
       )}
 
       <div className="flex flex-col items-center gap-6 px-6 text-center relative z-10">
 
-        {/* JACKPOT special display */}
+        {/* ── JACKPOT ── */}
         {isJackpot ? (
           <>
             <motion.div
@@ -104,7 +136,7 @@ export default function Billboard({ tipResult, drinkResult, onDismiss, onJackpot
                 textShadow: '0 0 20px #FFD700, 0 0 40px #FFD700, 0 0 80px #FF8C00',
               }}
             >
-              💥 JACKPOT!
+              {t('jackpot')}
             </motion.div>
 
             <motion.div
@@ -118,7 +150,7 @@ export default function Billboard({ tipResult, drinkResult, onDismiss, onJackpot
                 textShadow: '0 0 15px #FFD700',
               }}
             >
-              500,000₫
+              {t('jackpotAmount')}
             </motion.div>
 
             <motion.div
@@ -128,8 +160,10 @@ export default function Billboard({ tipResult, drinkResult, onDismiss, onJackpot
               className="font-bebas text-4xl"
               style={{ color: '#FF4500', textShadow: '0 0 15px #FF4500' }}
             >
-              🍺 원샷 확정!
+              {t('jackpotShot')}
             </motion.div>
+
+            <DrinkDisplay drinkResult={displayDrink} drinkColor={drinkColor} drinkLabel={drinkLabel} />
 
             <motion.button
               initial={{ opacity: 0 }}
@@ -139,9 +173,11 @@ export default function Billboard({ tipResult, drinkResult, onDismiss, onJackpot
               onClick={onJackpotDismiss}
               className="mt-4 px-8 py-3 rounded-2xl border-2 border-[#FFD700] bg-[#FFD700]/20 font-bebas text-2xl text-[#FFD700] tracking-widest"
             >
-              닫기
+              {t('cancel') === 'cancel' ? '닫기' : t('cancel')}
             </motion.button>
           </>
+
+        /* ── CURSE ── */
         ) : isCurse ? (
           <>
             <motion.div
@@ -154,32 +190,35 @@ export default function Billboard({ tipResult, drinkResult, onDismiss, onJackpot
                 textShadow: '0 0 20px #FF0000',
               }}
             >
-              💀 저주받은 {formatAmount(amount)}!
+              {t('cursed', { amount: amount.toLocaleString() })}
             </motion.div>
             <div className="font-noto font-bold text-2xl text-white/70">
-              오늘 운 다 썼네요 😂
+              {t('curseBottom')}
             </div>
-            <DrinkDisplay drinkResult={drinkResult} drinkColor={drinkColor} />
+            <DrinkDisplay drinkResult={displayDrink} drinkColor={drinkColor} drinkLabel={drinkLabel} />
             <SpinAgainButton onSpinAgain={onSpinAgain} onDismiss={onDismiss} />
           </>
+
+        /* ── 일반 결과 ── */
         ) : (
           <>
-            {/* Main tip result */}
             <motion.div
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: [0, 1.2, 1], opacity: 1 }}
               transition={{ type: 'spring', stiffness: 300, damping: 15 }}
               className="font-bebas"
               style={{
-                fontSize: tier === 'high' ? 'clamp(50px, 15vw, 72px)' : 'clamp(38px, 12vw, 56px)',
+                fontSize: tier === 'high'
+                  ? 'clamp(50px, 15vw, 72px)'
+                  : 'clamp(38px, 12vw, 56px)',
                 color: mainColor,
                 textShadow: `0 0 15px ${mainColor}, 0 0 30px ${mainColor}`,
               }}
             >
-              {tier === 'nothing' ? '❌ 꽝' : formatAmount(amount)}
+              {tier === 'nothing' ? `❌ ${t('nothing')}` : formatAmount(amount)}
             </motion.div>
 
-            <DrinkDisplay drinkResult={drinkResult} drinkColor={drinkColor} />
+            <DrinkDisplay drinkResult={displayDrink} drinkColor={drinkColor} drinkLabel={drinkLabel} />
             <SpinAgainButton onSpinAgain={onSpinAgain} onDismiss={onDismiss} />
           </>
         )}
@@ -188,8 +227,14 @@ export default function Billboard({ tipResult, drinkResult, onDismiss, onJackpot
   )
 }
 
-function DrinkDisplay({ drinkResult, drinkColor }: { drinkResult: DrinkResult; drinkColor: string }) {
-  const drinkLabel = DRINK_LABELS[drinkResult]
+// ── DrinkDisplay ──────────────────────────────────────────────────────────────
+function DrinkDisplay({
+  drinkResult, drinkColor, drinkLabel,
+}: {
+  drinkResult: DrinkResult
+  drinkColor:  string
+  drinkLabel:  string
+}) {
   const isShot = drinkResult === 'p100'
 
   return (
@@ -212,15 +257,14 @@ function DrinkDisplay({ drinkResult, drinkColor }: { drinkResult: DrinkResult; d
   )
 }
 
+// ── GlassFill ─────────────────────────────────────────────────────────────────
 function GlassFill({ level }: { level: DrinkResult }) {
   const fillPercent = { p25: 25, p50: 50, p70: 70, p100: 100, respin: 0 }[level] ?? 0
-  const fillColor = {
-    p25: '#87CEEB', p50: '#FFA500', p70: '#FF4500', p100: '#FF0000', respin: '#39FF14'
+  const fillColor   = {
+    p25: '#87CEEB', p50: '#FFA500', p70: '#FF4500', p100: '#FF0000', respin: '#39FF14',
   }[level]
 
-  if (level === 'respin') return (
-    <div className="text-5xl">🔄</div>
-  )
+  if (level === 'respin') return <div className="text-5xl">🔄</div>
 
   return (
     <div className="relative w-14 h-20 border-2 border-white/40 rounded-b-xl overflow-hidden bg-black/50">
@@ -238,21 +282,18 @@ function GlassFill({ level }: { level: DrinkResult }) {
   )
 }
 
+// ── SpinAgainButton ───────────────────────────────────────────────────────────
 function SpinAgainButton({
-  onSpinAgain,
-  onDismiss,
+  onSpinAgain, onDismiss,
 }: {
   onSpinAgain?: () => void
-  onDismiss: () => void
+  onDismiss:    () => void
 }) {
   const { t } = useTranslation()
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (onSpinAgain) {
-      onSpinAgain()
-    } else {
-      onDismiss()
-    }
+    if (onSpinAgain) onSpinAgain()
+    else onDismiss()
   }
 
   return (
