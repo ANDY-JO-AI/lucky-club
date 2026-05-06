@@ -7,28 +7,44 @@ import {
 } from '../types/game'
 
 export type ReelCommand = 'idle' | 'spin' | 'decel' | 'revealed'
-
 export type SpinPhase =
   | 'idle' | 'spinning' | 'drinkStopping' | 'drinkRevealed'
   | 'tipStopping' | 'tipRevealed' | 'celebration' | 'billboard'
   | 'nearMiss' | 'stopping'
 
 interface SlotReelProps {
-  type:      'tip' | 'drink'
-  command:   ReelCommand
-  result:    TipResult | DrinkResult | null
+  type:       'tip' | 'drink'
+  command:    ReelCommand
+  result:     TipResult | DrinkResult | null
   className?: string
-  onLanded?: () => void
+  onLanded?:  () => void
 }
 
 const CELL_H  = 72
 const VISIBLE = 5
 const CENTER  = Math.floor(VISIBLE / 2)
-const FAST_MS = 42
+const FAST_MS = 40
 
-// 감속 스텝 — 프로 카지노 실측 기반
-// 앞 3칸은 중간 속도, 마지막 2칸에서 극적으로 느려짐
-const DECEL_MS = [60, 100, 150, 210, 290, 400, 560, 760, 1000, 1300]
+// DRINK 감속 — 2.5초 걸쳐 착지
+const DRINK_DECEL_STEPS = [
+  { delay: 80  },
+  { delay: 140 },
+  { delay: 240 },
+  { delay: 380 },
+  { delay: 560 },
+  { delay: 800 },
+]
+
+// TIP 감속 — 약올리기 최대화, 총 ~6초
+// 마지막 2칸에서 1200ms + 2500ms = 3.7초 동안 "올까 말까" 심리전
+const TIP_DECEL_STEPS = [
+  { delay: 80  },   // pre6 — 빠름
+  { delay: 140 },   // pre5
+  { delay: 260 },   // pre4 — 슬슬 느려짐
+  { delay: 440 },   // pre3 — "이번 칸인가?"
+  { delay: 1200 },  // pre2 — 거의 멈춤... 근데 또 넘어감 😱
+  { delay: 2500 },  // pre1 — 진짜 멈출 것 같음... 약올리기 절정
+]
 
 function colorOf(type: 'tip' | 'drink', key: string): string {
   if (type === 'tip') {
@@ -43,14 +59,13 @@ function colorOf(type: 'tip' | 'drink', key: string): string {
       jackpot: '#fbbf24',
     }
     return m[key] ?? '#6b7280'
-  } else {
-    const m: Record<string, string> = {
-      p25: '#34d399', p50: '#38bdf8',
-      p70: '#a78bfa', p100: '#f472b6',
-      respin: '#fbbf24',
-    }
-    return m[key] ?? '#6b7280'
   }
+  const m: Record<string, string> = {
+    p25: '#34d399', p50: '#38bdf8',
+    p70: '#a78bfa', p100: '#f472b6',
+    respin: '#fbbf24',
+  }
+  return m[key] ?? '#6b7280'
 }
 
 function buildWindow(order: readonly string[], topIdx: number): string[] {
@@ -58,7 +73,6 @@ function buildWindow(order: readonly string[], topIdx: number): string[] {
     order[(topIdx + i) % order.length]
   )
 }
-
 function topForCenter(order: readonly string[], targetIdx: number): number {
   const len = order.length
   return ((targetIdx - CENTER) % len + len) % len
@@ -72,12 +86,13 @@ const SlotReel: React.FC<SlotReelProps> = ({
     : (DRINK_REEL_ORDER as readonly string[])
   const labels = type === 'tip' ? TIP_LABELS : DRINK_LABELS
 
-  const [window_,   setWindow]    = useState<string[]>(() => buildWindow(order, 0))
-  const [revealed,  setRevealed]  = useState(false)
-  const [flash,     setFlash]     = useState(false)
-  const [shimmy,    setShimmy]    = useState(false)
-  const [glowing,   setGlowing]   = useState(false)
-  const [nearLabel, setNearLabel] = useState<string | null>(null)
+  const [window_,  setWindow]   = useState<string[]>(() => buildWindow(order, 0))
+  const [revealed, setRevealed] = useState(false)
+  const [flash,    setFlash]    = useState(false)
+  const [shimmy,   setShimmy]   = useState(false)
+  const [glowing,  setGlowing]  = useState(false)
+  // 약올리기: 중앙 칸이 느리게 멈출 때 화면 테두리 점멸
+  const [teasePulse, setTeasePulse] = useState(false)
 
   const topRef      = useRef(0)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -98,67 +113,65 @@ const SlotReel: React.FC<SlotReelProps> = ({
     setWindow(buildWindow(order, topRef.current))
   }, [order])
 
-  // ── 카지노 감속 시퀀스 ────────────────────────────────────────────────────
-  // 핵심: 5칸 앞에서 시작, 마지막 2칸은 거의 멈출 것처럼 극적으로 느려짐
   const startDecel = useCallback((finalResult: string) => {
     clearAll()
     const finalIdx = (order as string[]).indexOf(finalResult)
     if (finalIdx < 0) return
-    const len = order.length
+    const len   = order.length
+    const isTip = type === 'tip'
+    const steps = isTip ? TIP_DECEL_STEPS : DRINK_DECEL_STEPS
+    const total = steps.length  // 6칸 앞에서 시작
 
-    const pre5 = ((finalIdx - 5 + len) % len)
-    const pre4 = ((finalIdx - 4 + len) % len)
-    const pre3 = ((finalIdx - 3 + len) % len)
-    const pre2 = ((finalIdx - 2 + len) % len)
-    const pre1 = ((finalIdx - 1 + len) % len)
-
-    // 각 칸별 딜레이 — 뒤로 갈수록 극적으로 증가
-    const steps: Array<{ idx: number; delay: number; near?: boolean }> = [
-      { idx: pre5, delay: DECEL_MS[2] },          // 150ms — 슬슬 느려짐
-      { idx: pre4, delay: DECEL_MS[4] },          // 290ms — 확실히 느려짐
-      { idx: pre3, delay: DECEL_MS[6] },          // 560ms — 멈출 것 같음
-      { idx: pre2, delay: DECEL_MS[8], near: true }, // 1000ms — 심장 쫄깃 1
-      { idx: pre1, delay: DECEL_MS[9], near: true }, // 1300ms — 심장 쫄깃 2 (약올리기)
-    ]
+    // pre 인덱스 생성 (total칸 앞부터)
+    const preIdxs = steps.map((_, i) =>
+      ((finalIdx - (total - i) + len) % len)
+    )
 
     let step = 0
+
     const runNext = () => {
       if (step >= steps.length) {
-        // 최종 착지
+        // ── 최종 착지 ──
         snapTo(finalIdx)
-        setNearLabel(null)
+        setTeasePulse(false)
         setRevealed(true)
         setGlowing(true)
         setShimmy(true)
-        setTimeout(() => setShimmy(false), 600)
+        setTimeout(() => setShimmy(false), 650)
         setFlash(true)
-        setTimeout(() => setFlash(false), 400)
+        setTimeout(() => setFlash(false), 420)
         onLanded?.()
         return
       }
-      const s = steps[step]
-      snapTo(s.idx)
-      // 니어미스 칸에서 라벨 표시 (심리 압박)
-      if (s.near) {
-        const nearItem = order[s.idx]
-        setNearLabel(labels[nearItem as keyof typeof labels] ?? nearItem)
-        setTimeout(() => setNearLabel(null), s.delay * 0.7)
+
+      const s       = steps[step]
+      const idx     = preIdxs[step]
+      const isLast2 = isTip && step >= steps.length - 2
+
+      snapTo(idx)
+
+      // 마지막 2칸 — 약올리기 테두리 점멸
+      if (isLast2) {
+        setTeasePulse(true)
+        setTimeout(() => setTeasePulse(false), s.delay * 0.6)
+        setTimeout(() => setTeasePulse(true),  s.delay * 0.6)
+        setTimeout(() => setTeasePulse(false), s.delay * 0.9)
       }
+
       step++
       timerRef.current = setTimeout(runNext, s.delay)
     }
 
-    timerRef.current = setTimeout(runNext, DECEL_MS[0])
-  }, [order, labels, clearAll, snapTo, onLanded])
+    timerRef.current = setTimeout(runNext, 60)
+  }, [order, type, clearAll, snapTo, onLanded])
 
-  // ── Command 처리 ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (command === 'idle') {
       clearAll()
       setRevealed(false)
       setFlash(false)
       setGlowing(false)
-      setNearLabel(null)
+      setTeasePulse(false)
       topRef.current = 0
       setWindow(buildWindow(order, 0))
       return
@@ -167,7 +180,7 @@ const SlotReel: React.FC<SlotReelProps> = ({
       clearAll()
       setRevealed(false)
       setGlowing(false)
-      setNearLabel(null)
+      setTeasePulse(false)
       intervalRef.current = setInterval(tick, FAST_MS)
       return
     }
@@ -181,7 +194,7 @@ const SlotReel: React.FC<SlotReelProps> = ({
   }, [command, result])
 
   const resultColor = result ? colorOf(type, result as string) : '#6b7280'
-  const borderColor = glowing ? resultColor : '#374151'
+  const teaseColor  = '#fbbf24'
 
   return (
     <div className={`relative flex flex-col items-center select-none ${className}`}>
@@ -193,20 +206,27 @@ const SlotReel: React.FC<SlotReelProps> = ({
       {/* 릴 윈도우 */}
       <motion.div
         className="relative overflow-hidden rounded-2xl border-2"
-        animate={glowing ? {
-          boxShadow: [
-            `0 0 24px ${resultColor}77`,
-            `0 0 55px ${resultColor}dd`,
-            `0 0 24px ${resultColor}77`,
-          ]
-        } : { boxShadow: '0 4px 20px #000a' }}
-        transition={glowing ? { duration: 0.65, repeat: Infinity } : {}}
+        animate={
+          teasePulse
+            ? { boxShadow: [`0 0 0px ${teaseColor}00`, `0 0 50px ${teaseColor}ff`, `0 0 0px ${teaseColor}00`],
+                borderColor: [teaseColor, '#fbbf2488', teaseColor] }
+            : glowing
+            ? { boxShadow: [`0 0 24px ${resultColor}77`, `0 0 55px ${resultColor}dd`, `0 0 24px ${resultColor}77`] }
+            : { boxShadow: '0 4px 20px #000a' }
+        }
+        transition={
+          teasePulse
+            ? { duration: 0.35, repeat: Infinity }
+            : glowing
+            ? { duration: 0.65, repeat: Infinity }
+            : {}
+        }
         style={{
           width: 130,
           height: CELL_H * VISIBLE,
-          borderColor,
+          borderColor: glowing ? resultColor : teasePulse ? teaseColor : '#374151',
           background: '#0d1117',
-          transition: 'border-color 0.2s',
+          transition: 'border-color 0.15s',
         }}
       >
         {/* 상단 마스크 */}
@@ -221,31 +241,36 @@ const SlotReel: React.FC<SlotReelProps> = ({
         {/* 중앙 하이라이트 바 */}
         <motion.div
           className="absolute inset-x-0 z-20 pointer-events-none rounded-lg"
-          animate={glowing ? {
-            borderColor: [resultColor, `${resultColor}33`, resultColor],
-            background:  [`${resultColor}22`, `${resultColor}06`, `${resultColor}22`],
-          } : {}}
-          transition={glowing ? { duration: 0.65, repeat: Infinity } : {}}
+          animate={
+            teasePulse
+              ? { borderColor: [teaseColor, `${teaseColor}44`, teaseColor],
+                  background:  [`${teaseColor}22`, `${teaseColor}06`, `${teaseColor}22`] }
+              : glowing
+              ? { borderColor: [resultColor, `${resultColor}33`, resultColor],
+                  background:  [`${resultColor}22`, `${resultColor}06`, `${resultColor}22`] }
+              : {}
+          }
+          transition={teasePulse || glowing ? { duration: 0.35, repeat: Infinity } : {}}
           style={{
             top: CENTER * CELL_H + 4,
             height: CELL_H - 8,
-            border: `2px solid ${revealed ? resultColor : '#4b556333'}`,
+            border: `2px solid ${glowing ? resultColor : teasePulse ? teaseColor : '#4b556333'}`,
             margin: '0 4px',
           }}
         />
 
         {/* 아이템 목록 */}
         <motion.div
-          animate={shimmy ? { x: [-8, 8, -6, 6, -4, 4, -2, 2, 0] } : { x: 0 }}
-          transition={{ duration: 0.55, ease: 'easeOut' }}
+          animate={shimmy ? { x: [-9, 9, -7, 7, -5, 5, -3, 3, -1, 1, 0] } : { x: 0 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
         >
           {window_.map((item, i) => {
             const isCenter = i === CENTER
             const iColor   = colorOf(type, item)
             const dist     = Math.abs(i - CENTER)
-            const blur     = revealed ? 0 : dist * 2.2
-            const scale    = isCenter && revealed ? 1.14 : 1
-            const opacity  = isCenter ? 1 : Math.max(0.18, 1 - dist * 0.3)
+            const blur     = revealed ? 0 : dist * 2.5
+            const scale    = isCenter && revealed ? 1.15 : 1
+            const opacity  = isCenter ? 1 : Math.max(0.15, 1 - dist * 0.32)
 
             return (
               <div
@@ -260,7 +285,7 @@ const SlotReel: React.FC<SlotReelProps> = ({
                   transform: `scale(${scale})`,
                   transition: 'filter 0.1s, transform 0.1s, opacity 0.1s',
                   textShadow: isCenter && revealed
-                    ? `0 0 18px ${iColor}, 0 0 36px ${iColor}88`
+                    ? `0 0 20px ${iColor}, 0 0 40px ${iColor}99`
                     : 'none',
                   textAlign: 'center',
                   padding: '0 8px',
@@ -274,33 +299,14 @@ const SlotReel: React.FC<SlotReelProps> = ({
           })}
         </motion.div>
 
-        {/* 니어미스 순간 중앙 라벨 펄스 */}
-        <AnimatePresence>
-          {nearLabel && (
-            <motion.div
-              key="near"
-              initial={{ opacity: 0, scale: 0.7 }}
-              animate={{ opacity: [0, 1, 0.6, 1], scale: [0.7, 1.1, 1] }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 0.3 }}
-              className="absolute inset-x-0 z-25 flex items-center justify-center pointer-events-none"
-              style={{ top: CENTER * CELL_H, height: CELL_H }}
-            >
-              <span className="font-bebas text-xs text-white/60 bg-black/60 px-2 py-0.5 rounded-full">
-                {nearLabel}
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* 결과 플래시 */}
         <AnimatePresence>
           {flash && result && (
             <motion.div
               key="flash"
-              initial={{ opacity: 0.85 }}
+              initial={{ opacity: 0.9 }}
               animate={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
+              transition={{ duration: 0.42 }}
               className="absolute inset-0 z-30 rounded-2xl pointer-events-none"
               style={{ background: resultColor }}
             />
@@ -313,14 +319,14 @@ const SlotReel: React.FC<SlotReelProps> = ({
         {revealed && result && (
           <motion.div
             key="label"
-            initial={{ scale: 0.2, opacity: 0, y: 10 }}
-            animate={{ scale: [0.2, 1.25, 1], opacity: 1, y: 0 }}
+            initial={{ scale: 0.2, opacity: 0, y: 12 }}
+            animate={{ scale: [0.2, 1.3, 1], opacity: 1, y: 0 }}
             exit={{ scale: 0.7, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 380, damping: 14 }}
+            transition={{ type: 'spring', stiffness: 360, damping: 13 }}
             className="mt-3 px-4 py-1.5 rounded-full text-sm font-extrabold text-black"
             style={{
               background: resultColor,
-              boxShadow: `0 0 20px ${resultColor}bb`,
+              boxShadow: `0 0 22px ${resultColor}cc`,
             }}
           >
             {labels[result as keyof typeof labels] ?? result}

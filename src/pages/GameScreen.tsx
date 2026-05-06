@@ -167,27 +167,33 @@ export default function GameScreen() {
       else if (drink === 'p70') playSound('warning_beep')
     }, 5000)
 
-    // 6.2 s - TIP 릴 단독 고속 회전 시작 (1.2초 압박 정지 후)
+    // 5.8 s - 약올리기 텍스트 시작
+    later(() => {
+      setQuestionMode(true)
+    }, 5800)
+
+    // 6.5 s - TIP 릴 단독 고속 회전 시작
     later(() => {
       setTipCmd('spin')
       stopDrumroll()
-    }, 6200)
+    }, 6500)
 
-    // 8.2 s - TIP 릴 감속 시작 (2초 고속 회전 후)
+    // 8.5 s - TIP 릴 감속 시작 (2초 고속 회전 후)
     later(() => {
       setTipResult(tip)
       setTipCmd('decel')
-    }, 8200)
+    }, 8500)
 
-    // 12.0 s - TIP 착지 확정 (감속 ~3.8초)
+    // 14.5 s - TIP 착지 확정 (감속 ~6초 — 약올리기 최고조 후)
     later(() => {
       setTipCmd('revealed')
       setPhase('tipRevealed')
+      setQuestionMode(false)
       setNearMissTip(null)
       setNearMissDrink(null)
       playSound('slot_stop')
       haptic('light')
-    }, 12000)
+    }, 14500)
 
         // 2.8 s + celebDelay — celebration effects
     later(() => {
@@ -261,7 +267,7 @@ export default function GameScreen() {
         setShowParticles('fire')
         haptic('continuous', 800)
       }
-    }, 12800 + celebDelay)
+    }, 15300 + celebDelay)
 
     // 3.5 s + celebDelay — billboard
     later(() => {
@@ -280,7 +286,7 @@ export default function GameScreen() {
           later(() => setShowBeerSuggestion(false), 3000)
         }, 400)
       }
-    }, 13600 + celebDelay)
+    }, 16100 + celebDelay)
 
     // 4.2 s + celebDelay — compass + mission
     later(() => {
@@ -304,7 +310,7 @@ export default function GameScreen() {
           later(() => store.setShowMission(true), 3000)
         }
       }
-    }, 14400 + celebDelay)
+    }, 16900 + celebDelay)
 
     // Re-spin: auto-reset after billboard
     if (drink === 'respin') {
@@ -312,7 +318,7 @@ export default function GameScreen() {
         playSound('respin')
         store.setShowBillboard(false)
         later(() => resetToIdle(), 600)
-      }, 13200 + celebDelay)
+      }, 15700 + celebDelay)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, store])
@@ -419,7 +425,7 @@ export default function GameScreen() {
               className="font-bebas text-7xl text-[#FFD700] select-none"
               style={{ textShadow: '0 0 20px #FFD700, 0 0 40px #FF8C00' }}
             >
-              ???
+              💰 TIP...?!
             </motion.div>
           )}
         </AnimatePresence>
