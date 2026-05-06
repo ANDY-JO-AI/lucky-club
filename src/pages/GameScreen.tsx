@@ -1,4 +1,4 @@
-// Main Game Screen — complete rewrite with all bug fixes
+﻿// Main Game Screen — complete rewrite with all bug fixes
 import React, { useState, useCallback, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -144,7 +144,13 @@ export default function GameScreen() {
 
     // ── Timeline ──
 
-    // 1.8 s — near miss
+    // 1.6 s — result를 SlotReel에 미리 전달 (감속 시작용)
+    later(() => {
+      setTipResult(tip)
+      setDrinkResult(drink)
+    }, 1600)
+
+    // 1.8 s — near miss phase 진입 (이미 result 세팅됨)
     later(() => {
       setPhase('nearMiss')
       if (store.config.nearMissEnabled) {
@@ -153,13 +159,12 @@ export default function GameScreen() {
       }
     }, 1800)
 
-    // 2.4 s — TIP stops
+    // 2.4 s — TIP revealed
     later(() => {
       setPhase('tipRevealed')
       stopDrumroll()
       setNearMissTip(null)
       setNearMissDrink(null)
-      setTipResult(tip)
       playSound('slot_stop')
       haptic('light')
       // Celebration delay: show ??? for high/jackpot
@@ -171,7 +176,6 @@ export default function GameScreen() {
     // 2.8 s — DRINK stops
     later(() => {
       setPhase('drinkRevealed')
-      setDrinkResult(drink)
       playSound('slot_stop')
       haptic('light')
       if (drink === 'p100') playSound('siren')
