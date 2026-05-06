@@ -1,0 +1,160 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+    min-height: 100dvh;
+    background: #000000;
+    color: #FFFFFF;
+    font-family: 'Noto Sans KR', sans-serif;
+    overflow-x: hidden;
+  }
+
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+
+  input, textarea {
+    user-select: text;
+  }
+}
+
+@layer utilities {
+  .neon-gold {
+    text-shadow: 0 0 7px #FFD700, 0 0 21px #FFD700, 0 0 42px #FF8C00;
+  }
+  .neon-pink {
+    text-shadow: 0 0 7px #FF69B4, 0 0 21px #FF69B4;
+  }
+  .neon-green {
+    text-shadow: 0 0 7px #39FF14, 0 0 21px #39FF14;
+  }
+  .neon-red {
+    text-shadow: 0 0 7px #FF0000, 0 0 21px #FF0000;
+  }
+  .neon-border-gold {
+    box-shadow: 0 0 7px #FFD700, 0 0 21px #FFD700, inset 0 0 7px rgba(255,215,0,0.1);
+    border-color: #FFD700;
+  }
+  .neon-border-pink {
+    box-shadow: 0 0 7px #FF69B4, 0 0 21px #FF69B4, inset 0 0 7px rgba(255,105,180,0.1);
+    border-color: #FF69B4;
+  }
+  .font-bebas { font-family: 'Bebas Neue', cursive; }
+  .font-noto { font-family: 'Noto Sans KR', sans-serif; }
+
+  .glass {
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .gold-gradient {
+    background: linear-gradient(135deg, #FFD700 0%, #FF8C00 50%, #FFD700 100%);
+  }
+
+  .slot-reel {
+    overflow: hidden;
+    position: relative;
+  }
+
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}
+
+/* Slot machine scroll animation */
+@keyframes slotBlur {
+  0% { filter: blur(0px); }
+  50% { filter: blur(3px); }
+  100% { filter: blur(0px); }
+}
+
+/* Particle burst */
+@keyframes particleFly {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+}
+
+.particle {
+  position: fixed;
+  pointer-events: none;
+  animation: particleFly 1.5s ease-out forwards;
+  z-index: 9999;
+}
+
+/* Screen flash overlay */
+.flash-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  animation: flashAnim 0.15s ease-out;
+}
+
+@keyframes flashAnim {
+  0% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+/* Coin fall */
+@keyframes coinFall {
+  0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+.coin-fall {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9998;
+  animation: coinFall var(--duration, 2s) ease-in forwards;
+}
+
+/* Shimmy / near-miss */
+@keyframes shimmy {
+  0% { transform: translateY(0); }
+  25% { transform: translateY(-8px); }
+  75% { transform: translateY(8px); }
+  100% { transform: translateY(0); }
+}
+
+/* Flame edge effect */
+@keyframes flameEdge {
+  0%, 100% { box-shadow: inset 0 0 30px 10px rgba(255, 69, 0, 0.8); }
+  50% { box-shadow: inset 0 0 60px 20px rgba(255, 140, 0, 0.9); }
+}
+
+.flame-border {
+  animation: flameEdge 0.3s ease-in-out infinite;
+}
+
+/* Billboard pulse */
+@keyframes billboardPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* Spin button breathe */
+@keyframes breathe {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 20px #FFD700, 0 0 40px #FF8C00; }
+  50% { transform: scale(1.03); box-shadow: 0 0 30px #FFD700, 0 0 60px #FF8C00; }
+}
+
+.spin-breathe {
+  animation: breathe 2s ease-in-out infinite;
+}
+
+/* Jackpot flash */
+@keyframes jackpotFlash {
+  0%, 100% { background: #000; }
+  50% { background: #FFD700; }
+}
+
+/* Strobe */
+@keyframes strobe {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
