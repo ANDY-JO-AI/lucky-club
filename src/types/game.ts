@@ -59,6 +59,7 @@ export interface ClubConfig {
   drinkWeights: DrinkWeights
   adultPIN: string
   jackpotForcedShot: boolean
+  forcedShot: Record<TipResult, boolean>
   reSpinEnabled: boolean
   curseTierEnabled: boolean
   escalationEnabled: boolean
@@ -121,6 +122,18 @@ export const DEFAULT_CONFIG: ClubConfig = {
   drinkWeights: DEFAULT_DRINK_WEIGHTS,
   adultPIN: '1234',
   jackpotForcedShot: true,
+  forcedShot: {
+    nothing: false,
+    w1k: false,
+    w2k: false,
+    w5k: false,
+    w10k: false,
+    w20k: false,
+    w50k: false,
+    w100k: false,
+    w200k: false,
+    jackpot: true,
+  },
   reSpinEnabled: true,
   curseTierEnabled: true,
   escalationEnabled: true,
@@ -156,11 +169,11 @@ export const TIP_LABELS: Record<TipResult, string> = {
 }
 
 export const DRINK_LABELS: Record<DrinkResult, string> = {
-  p25: '🍺 25% 한모금',
-  p50: '🍺🍺 50% 반잔',
-  p70: '🍺🍺🍺 70% 칠할',
-  p100: '🍺🍺🍺🍺 100% 원샷',
-  respin: '🔄 한번더',
+  p25:    '🍺 25%',
+  p50:    '🍺🍺 50%',
+  p70:    '🍺🍺🍺 70%',
+  p100:   '🍺🍺🍺🍺 100%',
+  respin: '🔄 RESPIN',
 }
 
 export const getTipTier = (tip: TipResult): TipTier => {
@@ -181,7 +194,6 @@ export const isLowValue = (tip: TipResult): boolean => {
   return ['nothing', 'w1k', 'w2k', 'w5k', 'w10k', 'w20k'].includes(tip)
 }
 
-// Ordered list for slot reel display
 export const TIP_REEL_ORDER: TipResult[] = [
   'nothing', 'w1k', 'w2k', 'w5k', 'w10k', 'w20k',
   'w50k', 'w100k', 'w200k', 'jackpot'

@@ -1,4 +1,4 @@
-﻿// Admin Dashboard — Local Auth (no Firebase Auth dependency)
+// Admin Dashboard — Local Auth (no Firebase Auth dependency)
 import React, { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
@@ -11,11 +11,10 @@ import {
   changeAdminPassword,
   changeAdminEmail,
   getAdminEmail,
-  DEFAULT_CREDENTIALS,
 } from '../lib/localAuth'
 import { useGameStore } from '../store/gameStore'
 import { DEFAULT_CONFIG, DEFAULT_TIP_WEIGHTS, DEFAULT_DRINK_WEIGHTS } from '../types/game'
-import type { ClubConfig, Mission } from '../types/game'
+import type { ClubConfig, Mission, TipResult } from '../types/game'
 import { DEFAULT_MISSIONS_KARAOKE } from '../lib/missions'
 import {
   BarChart2, Settings2, BookOpen, LogOut, ChevronLeft,
@@ -24,11 +23,9 @@ import {
 
 // ─── Auth Gate ────────────────────────────────────────────────────────────────
 export default function AdminPage() {
-  // null = not logged in, string = logged-in email
   const [adminEmail, setAdminEmail] = useState<string | null | undefined>(undefined)
 
   useEffect(() => {
-    // Check sessionStorage on mount (instant, no network)
     const session = getAdminSession()
     setAdminEmail(session)
   }, [])
@@ -69,11 +66,10 @@ function AdminLogin({ onSuccess }: { onSuccess: (email: string) => void }) {
     e.preventDefault()
     setLoading(true)
     setError('')
-    // Small timeout so UI updates before synchronous work
     setTimeout(() => {
       const err = adminLogin(email.trim(), password)
       if (err) {
-        setError(err)
+        setError('이메일 또는 비밀번호가 올바르지 않습니다')
         setLoading(false)
       } else {
         onSuccess(email.trim().toLowerCase())
@@ -88,7 +84,6 @@ function AdminLogin({ onSuccess }: { onSuccess: (email: string) => void }) {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-sm"
       >
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="text-5xl mb-3">⚙️</div>
           <h1 className="font-bebas text-4xl text-[#FFD700] tracking-widest neon-gold">
@@ -96,21 +91,6 @@ function AdminLogin({ onSuccess }: { onSuccess: (email: string) => void }) {
           </h1>
           <p className="text-white/30 font-noto text-xs mt-1">Lucky Club Master</p>
         </div>
-
-        {/* Default credentials hint */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="mb-5 p-3 rounded-xl border border-[#FFD700]/20 bg-[#FFD700]/5"
-        >
-          <p className="text-[#FFD700]/70 font-noto text-xs text-center leading-relaxed">
-            🔑 기본 계정<br />
-            <span className="font-bold text-[#FFD700]">{DEFAULT_CREDENTIALS.email}</span>
-            <br />
-            <span className="font-bold text-[#FFD700]">{DEFAULT_CREDENTIALS.password}</span>
-          </p>
-        </motion.div>
 
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
           <input
@@ -175,50 +155,52 @@ function AdminLogin({ onSuccess }: { onSuccess: (email: string) => void }) {
 type AdminTab = 'stats' | 'probs' | 'missions' | 'settings'
 
 function AdminDashboard({ email, onLogout }: { email: string; onLogout: () => void }) {
-  const [activeTab, setActiveTab]   = useState<AdminTab>('stats')
-  const setStoreConfig = useGameStore(s => s.setConfig)
-  const [config, setConfig]         = useState<ClubConfig>(DEFAULT_CONFIG)
+  const [activeTab, setActiveTab]     = useState<AdminTab>('stats')
+  const setStoreConfig                = useGameStore(s => s.setConfig)
+  const [config, setConfig]           = useState<ClubConfig>(DEFAULT_CONFIG)
   const [savedConfig, setSavedConfig] = useState<ClubConfig>(DEFAULT_CONFIG)
-  const [loading, setLoading]       = useState(true)
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const [loading, setLoading]         = useState(true)
+  const [saveStatus, setSaveStatus]   = useState<'idle' | 'saving' | 'saved'>('idle')
 
-  // Load config from localStorage (no Firebase dependency)
   useEffect(() => {
     try {
       const stored = localStorage.getItem('lucky-club-storage')
       if (stored) {
         const parsed = JSON.parse(stored)
         if (parsed?.state?.config) {
-          setConfig(parsed.state.config)
-          setSavedConfig(parsed.state.config)
+          const loaded = parsed.state.config
+          // forcedShot 필드 없으면 기본값 병합
+          if (!loaded.forcedShot) loaded.forcedShot = DEFAULT_CONFIG.forcedShot
+          setConfig(loaded)
+          setSavedConfig(loaded)
         }
       }
     } catch {}
     setLoading(false)
   }, [])
 
-const saveConfig = () => {
-  setSaveStatus('saving')
-  try {
-    setStoreConfig(config)
-    const raw = localStorage.getItem('lucky-club-storage')
-    const parsed = raw ? JSON.parse(raw) : { state: {} }
-    if (!parsed.state) parsed.state = {}
-    parsed.state.config = config
-    localStorage.setItem('lucky-club-storage', JSON.stringify(parsed))
-    setSavedConfig(config)
-    setSaveStatus('saved')
-    setTimeout(() => setSaveStatus('idle'), 2000)
-  } catch {
-    setSaveStatus('idle')
+  const saveConfig = () => {
+    setSaveStatus('saving')
+    try {
+      setStoreConfig(config)
+      const raw    = localStorage.getItem('lucky-club-storage')
+      const parsed = raw ? JSON.parse(raw) : { state: {} }
+      if (!parsed.state) parsed.state = {}
+      parsed.state.config = config
+      localStorage.setItem('lucky-club-storage', JSON.stringify(parsed))
+      setSavedConfig(config)
+      setSaveStatus('saved')
+      setTimeout(() => setSaveStatus('idle'), 2000)
+    } catch {
+      setSaveStatus('idle')
+    }
   }
-}
 
   const tabs: { id: AdminTab; icon: React.ReactNode; label: string }[] = [
-    { id: 'stats',    icon: <BarChart2 size={18} />,  label: '통계'      },
-    { id: 'probs',    icon: <Settings2 size={18} />,  label: '확률'      },
-    { id: 'missions', icon: <BookOpen size={18} />,   label: '미션'      },
-    { id: 'settings', icon: <Settings2 size={18} />,  label: '설정'      },
+    { id: 'stats',    icon: <BarChart2 size={18} />, label: '통계'  },
+    { id: 'probs',    icon: <Settings2 size={18} />, label: '확률'  },
+    { id: 'missions', icon: <BookOpen size={18} />,  label: '미션'  },
+    { id: 'settings', icon: <Settings2 size={18} />, label: '설정'  },
   ]
 
   const showSave = activeTab === 'probs' || activeTab === 'settings'
@@ -227,7 +209,6 @@ const saveConfig = () => {
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
-      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <div className="flex items-center gap-3">
           <a href="/" className="p-2 rounded-xl bg-white/10">
@@ -254,17 +235,12 @@ const saveConfig = () => {
               {saveStatus === 'saving' ? '저장 중…' : saveStatus === 'saved' ? '저장됨 ✓' : '저장'}
             </motion.button>
           )}
-          <button
-            onClick={onLogout}
-            className="p-2 rounded-xl bg-white/10"
-            title="로그아웃"
-          >
+          <button onClick={onLogout} className="p-2 rounded-xl bg-white/10" title="로그아웃">
             <LogOut size={16} className="text-white/60" />
           </button>
         </div>
       </div>
 
-      {/* Tab bar */}
       <div className="flex border-b border-white/10 overflow-x-auto no-scrollbar">
         {tabs.map(tab => (
           <button
@@ -276,13 +252,11 @@ const saveConfig = () => {
                 : 'border-transparent text-white/40'
             }`}
           >
-            {tab.icon}
-            {tab.label}
+            {tab.icon}{tab.label}
           </button>
         ))}
       </div>
 
-      {/* Content */}
       <div className="flex-1 overflow-y-auto p-4">
         <AnimatePresence mode="wait">
           {activeTab === 'stats' && (
@@ -325,9 +299,9 @@ function StatsTab() {
   }, [])
 
   const cards = [
-    { label: '오늘 총 스핀',    value: stats.totalSpins,                              icon: '🎰', color: '#FFD700' },
-    { label: '오늘 팁 합계',    value: `${stats.totalTipVND.toLocaleString()}₫`,      icon: '💰', color: '#39FF14' },
-    { label: '오늘 잭팟 횟수',  value: stats.jackpotCount,                            icon: '💥', color: '#FF69B4' },
+    { label: '오늘 총 스핀',   value: stats.totalSpins,                         icon: '🎰', color: '#FFD700' },
+    { label: '오늘 팁 합계',   value: `${stats.totalTipVND.toLocaleString()}₫`, icon: '💰', color: '#39FF14' },
+    { label: '오늘 잭팟 횟수', value: stats.jackpotCount,                       icon: '💥', color: '#FF69B4' },
   ]
 
   return (
@@ -349,7 +323,6 @@ function StatsTab() {
           </motion.div>
         ))}
       </div>
-
       <div className="p-4 rounded-2xl border border-white/10 bg-white/5">
         <h3 className="font-noto font-bold text-white/50 text-xs mb-3">오늘의 활동</h3>
         <p className="font-noto text-white/30 text-sm text-center py-4">
@@ -370,10 +343,10 @@ function ProbsTab({
   const tipKeys: (keyof typeof config.tipWeights)[] = [
     'nothing','w1k','w2k','w5k','w10k','w20k','w50k','w100k','w200k','jackpot',
   ]
-  const tipLabels = ['꽝', '1K₫ 💀', '2K₫ 💀', '5K₫ 💀', '10K₫', '20K₫', '50K₫', '100K₫', '200K₫', '500K₫ 💥']
+  const tipLabels = ['꽝','1K₫ 💀','2K₫ 💀','5K₫ 💀','10K₫','20K₫','50K₫','100K₫','200K₫','500K₫ 💥']
 
   const drinkKeys: (keyof typeof config.drinkWeights)[] = ['p25','p50','p70','p100','respin']
-  const drinkLabels = ['25% 한모금', '50% 반잔', '70% 칠할', '100% 원샷', '🔄 한번더']
+  const drinkLabels = ['🍺 25%','🍺🍺 50%','🍺🍺🍺 70%','🍺🍺🍺🍺 100%','🔄 RESPIN']
 
   const tipTotal   = tipKeys.reduce((s, k) => s + config.tipWeights[k], 0)
   const drinkTotal = drinkKeys.reduce((s, k) => s + config.drinkWeights[k], 0)
@@ -388,7 +361,6 @@ function ProbsTab({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* TIP weights */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-bebas text-xl text-[#FFD700] tracking-wider">💰 TIP 슬롯</h3>
@@ -415,7 +387,6 @@ function ProbsTab({
         ))}
       </div>
 
-      {/* DRINK weights */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-bebas text-xl text-[#4FC3F7] tracking-wider">🍺 DRINK 슬롯</h3>
@@ -449,8 +420,7 @@ function WeightSlider({ label, value, onChange, color }: {
     <div className="flex items-center gap-3 py-1.5">
       <span className="font-noto text-white/70 text-sm w-28 flex-shrink-0">{label}</span>
       <input
-        type="range"
-        min={0} max={50} step={0.5}
+        type="range" min={0} max={50} step={0.5}
         value={value}
         onChange={e => onChange(parseFloat(e.target.value))}
         className="flex-1"
@@ -509,10 +479,7 @@ function MissionsTab() {
   const handleDelete = (id: string) => {
     const updated = {
       ...missions,
-      [mode]: {
-        ...missions[mode],
-        [level]: missions[mode][level].filter(m => m.id !== id),
-      },
+      [mode]: { ...missions[mode], [level]: missions[mode][level].filter(m => m.id !== id) },
     }
     setMissions(updated)
     saveMissions(updated)
@@ -552,10 +519,7 @@ function MissionsTab() {
     }
     const updated = {
       ...missions,
-      [mode]: {
-        ...missions[mode],
-        [level]: [...missions[mode][level], m],
-      },
+      [mode]: { ...missions[mode], [level]: [...missions[mode][level], m] },
     }
     setMissions(updated)
     saveMissions(updated)
@@ -565,12 +529,9 @@ function MissionsTab() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Mode tabs */}
       <div className="flex gap-2">
         {(['karaoke', 'adult'] as MissionMode[]).map(m => (
-          <button
-            key={m}
-            onClick={() => setMode(m)}
+          <button key={m} onClick={() => setMode(m)}
             className={`flex-1 py-2 rounded-xl font-noto font-bold text-sm border transition-all ${
               mode === m ? 'border-[#FFD700] bg-[#FFD700]/15 text-[#FFD700]' : 'border-white/20 text-white/50'
             }`}
@@ -579,13 +540,9 @@ function MissionsTab() {
           </button>
         ))}
       </div>
-
-      {/* Level tabs */}
       <div className="flex gap-2">
         {(['level1', 'level2', 'level3'] as MissionLevel[]).map(lv => (
-          <button
-            key={lv}
-            onClick={() => setLevel(lv)}
+          <button key={lv} onClick={() => setLevel(lv)}
             className={`flex-1 py-2 rounded-xl font-noto font-bold text-xs border transition-all ${
               level === lv ? 'border-[#FF69B4] bg-[#FF69B4]/15 text-[#FF69B4]' : 'border-white/20 text-white/40'
             }`}
@@ -594,8 +551,6 @@ function MissionsTab() {
           </button>
         ))}
       </div>
-
-      {/* Mission list */}
       <div className="flex flex-col gap-2">
         {currentList.map(m => (
           <div key={m.id} className="p-3 rounded-xl border border-white/10 bg-white/5">
@@ -627,15 +582,12 @@ function MissionsTab() {
             )}
           </div>
         ))}
-
         {currentList.length === 0 && (
           <p className="text-center text-white/30 font-noto text-sm py-6">
             {mode === 'adult' ? '관리자가 직접 미션을 추가해주세요' : '미션이 없습니다'}
           </p>
         )}
       </div>
-
-      {/* Add mission */}
       {showAdd ? (
         <div className="p-4 rounded-2xl border border-[#FFD700]/30 bg-[#FFD700]/5 flex flex-col gap-2">
           <input value={newMission.ko} onChange={e => setNewMission(p => ({ ...p, ko: e.target.value }))}
@@ -656,9 +608,7 @@ function MissionsTab() {
           </div>
         </div>
       ) : (
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={() => setShowAdd(true)}
+        <motion.button whileTap={{ scale: 0.97 }} onClick={() => setShowAdd(true)}
           className="flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-[#FFD700]/30 text-[#FFD700]/60 font-noto font-bold text-sm"
         >
           <Plus size={16} /> 미션 추가
@@ -675,30 +625,47 @@ function SettingsTab({
   config: ClubConfig
   setConfig: React.Dispatch<React.SetStateAction<ClubConfig>>
 }) {
-  const [showPinChange,  setShowPinChange]  = useState(false)
-  const [newPin,         setNewPin]         = useState('')
-
-  // ── Password change section (local auth) ──
-  const [showPwSection,  setShowPwSection]  = useState(false)
-  const [currentPw,      setCurrentPw]      = useState('')
-  const [newPw,          setNewPw]          = useState('')
-  const [confirmPw,      setConfirmPw]      = useState('')
-  const [pwError,        setPwError]        = useState('')
-  const [pwSuccess,      setPwSuccess]      = useState(false)
-  const [showCurrentPw,  setShowCurrentPw]  = useState(false)
-  const [showNewPw,      setShowNewPw]      = useState(false)
+  const [showPinChange, setShowPinChange] = useState(false)
+  const [newPin,        setNewPin]        = useState('')
+  const [showPwSection, setShowPwSection] = useState(false)
+  const [currentPw,     setCurrentPw]     = useState('')
+  const [newPw,         setNewPw]         = useState('')
+  const [confirmPw,     setConfirmPw]     = useState('')
+  const [pwError,       setPwError]       = useState('')
+  const [pwSuccess,     setPwSuccess]     = useState(false)
+  const [showCurrentPw, setShowCurrentPw] = useState(false)
+  const [showNewPw,     setShowNewPw]     = useState(false)
 
   const toggles: { key: keyof ClubConfig; label: string; desc: string }[] = [
-    { key: 'jackpotForcedShot', label: '잭팟 → 원샷 강제',      desc: '잭팟 결과 시 항상 100% 원샷으로 고정' },
-    { key: 'reSpinEnabled',     label: '리스핀 활성화',          desc: '"한번더" 결과가 나올 수 있습니다'       },
-    { key: 'curseTierEnabled',  label: '저주 티어 이펙트',       desc: '1K/2K/5K 저주 애니메이션 활성화'       },
-    { key: 'escalationEnabled', label: '긴장 고조 효과',         desc: '연속 스핀 시 드럼롤 BPM/볼륨 상승'     },
-    { key: 'nearMissEnabled',   label: '니어미스 효과',          desc: '최종 결과 직전 아슬아슬 흔들기'        },
-    { key: 'autoBillboard',     label: '자동 빌보드 모드',       desc: '결과 표시 후 자동 전체화면 전환'        },
+    { key: 'jackpotForcedShot', label: '잭팟 → 원샷 강제',    desc: '잭팟 결과 시 항상 100% 원샷으로 고정' },
+    { key: 'reSpinEnabled',     label: '리스핀 활성화',        desc: '"한번더" 결과가 나올 수 있습니다'     },
+    { key: 'curseTierEnabled',  label: '저주 티어 이펙트',     desc: '1K/2K/5K 저주 애니메이션 활성화'     },
+    { key: 'escalationEnabled', label: '긴장 고조 효과',       desc: '연속 스핀 시 드럼롤 BPM/볼륨 상승'   },
+    { key: 'nearMissEnabled',   label: '니어미스 효과',        desc: '최종 결과 직전 아슬아슬 흔들기'      },
+    { key: 'autoBillboard',     label: '자동 빌보드 모드',     desc: '결과 표시 후 자동 전체화면 전환'      },
+  ]
+
+  const tipForcedShotList: { key: TipResult; label: string }[] = [
+    { key: 'w1k',    label: '1,000 VND' },
+    { key: 'w2k',    label: '2,000 VND' },
+    { key: 'w5k',    label: '5,000 VND' },
+    { key: 'w10k',   label: '10,000 VND' },
+    { key: 'w20k',   label: '20,000 VND' },
+    { key: 'w50k',   label: '50,000 VND' },
+    { key: 'w100k',  label: '100,000 VND' },
+    { key: 'w200k',  label: '200,000 VND' },
+    { key: 'jackpot',label: '500,000 VND 💥 잭팟' },
   ]
 
   const handleToggle = (key: keyof ClubConfig) => {
     setConfig(c => ({ ...c, [key]: !c[key] }))
+  }
+
+  const handleForcedShotToggle = (key: TipResult) => {
+    setConfig(c => ({
+      ...c,
+      forcedShot: { ...c.forcedShot, [key]: !c.forcedShot?.[key] }
+    }))
   }
 
   const handlePinSave = () => {
@@ -711,13 +678,10 @@ function SettingsTab({
   const handlePasswordChange = () => {
     setPwError('')
     setPwSuccess(false)
-    if (newPw !== confirmPw) {
-      setPwError('새 비밀번호가 일치하지 않습니다')
-      return
-    }
+    if (newPw !== confirmPw) { setPwError('새 비밀번호가 일치하지 않습니다'); return }
     const err = changeAdminPassword(currentPw, newPw)
     if (err) {
-      setPwError(err)
+      setPwError('현재 비밀번호가 올바르지 않습니다')
     } else {
       setPwSuccess(true)
       setCurrentPw(''); setNewPw(''); setConfirmPw('')
@@ -727,7 +691,7 @@ function SettingsTab({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Toggle switches */}
+      {/* 기본 토글 */}
       {toggles.map(({ key, label, desc }) => (
         <div key={key} className="flex items-center justify-between p-4 rounded-2xl border border-white/10 bg-white/5">
           <div>
@@ -749,42 +713,50 @@ function SettingsTab({
         </div>
       ))}
 
-      {/* Adult PIN change */}
+      {/* TIP별 원샷 강제 */}
+      <div className="p-4 rounded-2xl border border-[#FFD700]/30 bg-[#FFD700]/5">
+        <p className="font-noto font-bold text-[#FFD700] text-sm mb-1">💰 TIP 금액별 원샷 강제</p>
+        <p className="font-noto text-white/40 text-xs mb-3">해당 TIP 결과 시 DRINK를 100% 원샷으로 강제 적용</p>
+        {tipForcedShotList.map(({ key, label }) => (
+          <div key={key} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+            <span className="font-noto text-white/80 text-sm">{label}</span>
+            <button
+              onClick={() => handleForcedShotToggle(key)}
+              className={`relative w-10 h-5 rounded-full transition-colors duration-200 flex-shrink-0 ${
+                config.forcedShot?.[key] ? 'bg-[#FFD700]' : 'bg-white/20'
+              }`}
+            >
+              <motion.div
+                animate={{ x: config.forcedShot?.[key] ? 20 : 0 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                className="absolute top-0.5 left-0.5 w-4 h-4 bg-black rounded-full"
+              />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* 성인 PIN 변경 */}
       <div className="p-4 rounded-2xl border border-white/10 bg-white/5">
         <div className="flex items-center justify-between mb-2">
           <div>
             <p className="font-noto font-bold text-white text-sm">성인 모드 PIN 변경</p>
             <p className="font-noto text-white/40 text-xs">현재 PIN: {config.adultPIN}</p>
           </div>
-          <button
-            onClick={() => setShowPinChange(!showPinChange)}
-            className="px-3 py-1.5 rounded-xl bg-white/10 font-noto text-xs text-white/60"
-          >
+          <button onClick={() => setShowPinChange(!showPinChange)}
+            className="px-3 py-1.5 rounded-xl bg-white/10 font-noto text-xs text-white/60">
             {showPinChange ? '취소' : '변경'}
           </button>
         </div>
         <AnimatePresence>
           {showPinChange && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden"
-            >
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
               <div className="flex gap-2 mt-2">
-                <input
-                  type="number"
-                  maxLength={4}
-                  value={newPin}
-                  onChange={e => setNewPin(e.target.value.slice(0, 4))}
+                <input type="number" maxLength={4} value={newPin} onChange={e => setNewPin(e.target.value.slice(0, 4))}
                   placeholder="새 PIN 4자리"
-                  className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white font-noto text-sm outline-none"
-                />
-                <button
-                  onClick={handlePinSave}
-                  disabled={newPin.length !== 4}
-                  className="px-4 py-2 rounded-xl bg-[#FFD700] text-black font-bold font-noto text-sm disabled:opacity-40"
-                >
+                  className="flex-1 px-3 py-2 rounded-xl bg-white/10 border border-white/20 text-white font-noto text-sm outline-none" />
+                <button onClick={handlePinSave} disabled={newPin.length !== 4}
+                  className="px-4 py-2 rounded-xl bg-[#FFD700] text-black font-bold font-noto text-sm disabled:opacity-40">
                   저장
                 </button>
               </div>
@@ -793,7 +765,7 @@ function SettingsTab({
         </AnimatePresence>
       </div>
 
-      {/* Admin password change */}
+      {/* 관리자 비밀번호 변경 */}
       <div className="p-4 rounded-2xl border border-[#FF69B4]/20 bg-[#FF69B4]/5">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
@@ -803,84 +775,47 @@ function SettingsTab({
               <p className="font-noto text-white/40 text-xs">로그인 비밀번호 변경</p>
             </div>
           </div>
-          <button
-            onClick={() => { setShowPwSection(!showPwSection); setPwError(''); setPwSuccess(false) }}
-            className="px-3 py-1.5 rounded-xl bg-white/10 font-noto text-xs text-white/60"
-          >
+          <button onClick={() => { setShowPwSection(!showPwSection); setPwError(''); setPwSuccess(false) }}
+            className="px-3 py-1.5 rounded-xl bg-white/10 font-noto text-xs text-white/60">
             {showPwSection ? '닫기' : '변경'}
           </button>
         </div>
-
         <AnimatePresence>
           {showPwSection && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden"
-            >
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
               <div className="flex flex-col gap-2 mt-3">
-                {/* Current password */}
                 <div className="relative">
-                  <input
-                    type={showCurrentPw ? 'text' : 'password'}
-                    value={currentPw}
-                    onChange={e => setCurrentPw(e.target.value)}
-                    placeholder="현재 비밀번호"
+                  <input type={showCurrentPw ? 'text' : 'password'} value={currentPw}
+                    onChange={e => setCurrentPw(e.target.value)} placeholder="현재 비밀번호"
                     autoComplete="current-password"
-                    className="w-full px-3 py-2.5 pr-10 rounded-xl bg-white/10 border border-white/20 text-white font-noto text-sm outline-none focus:border-[#FF69B4]"
-                  />
+                    className="w-full px-3 py-2.5 pr-10 rounded-xl bg-white/10 border border-white/20 text-white font-noto text-sm outline-none focus:border-[#FF69B4]" />
                   <button type="button" onClick={() => setShowCurrentPw(v => !v)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40">
                     {showCurrentPw ? <EyeOff size={14} /> : <Eye size={14} />}
                   </button>
                 </div>
-
-                {/* New password */}
                 <div className="relative">
-                  <input
-                    type={showNewPw ? 'text' : 'password'}
-                    value={newPw}
-                    onChange={e => setNewPw(e.target.value)}
-                    placeholder="새 비밀번호 (6자 이상)"
+                  <input type={showNewPw ? 'text' : 'password'} value={newPw}
+                    onChange={e => setNewPw(e.target.value)} placeholder="새 비밀번호 (6자 이상)"
                     autoComplete="new-password"
-                    className="w-full px-3 py-2.5 pr-10 rounded-xl bg-white/10 border border-white/20 text-white font-noto text-sm outline-none focus:border-[#FF69B4]"
-                  />
+                    className="w-full px-3 py-2.5 pr-10 rounded-xl bg-white/10 border border-white/20 text-white font-noto text-sm outline-none focus:border-[#FF69B4]" />
                   <button type="button" onClick={() => setShowNewPw(v => !v)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40">
                     {showNewPw ? <EyeOff size={14} /> : <Eye size={14} />}
                   </button>
                 </div>
-
-                {/* Confirm password */}
-                <input
-                  type="password"
-                  value={confirmPw}
-                  onChange={e => setConfirmPw(e.target.value)}
-                  placeholder="새 비밀번호 확인"
-                  autoComplete="new-password"
+                <input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)}
+                  placeholder="새 비밀번호 확인" autoComplete="new-password"
                   className={`w-full px-3 py-2.5 rounded-xl bg-white/10 border text-white font-noto text-sm outline-none transition-colors ${
                     confirmPw && confirmPw !== newPw ? 'border-red-500' : 'border-white/20 focus:border-[#FF69B4]'
-                  }`}
-                />
-
+                  }`} />
                 <AnimatePresence>
-                  {pwError && (
-                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      className="text-red-400 text-xs font-noto">{pwError}</motion.p>
-                  )}
-                  {pwSuccess && (
-                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      className="text-green-400 text-xs font-noto">✓ 비밀번호가 변경되었습니다</motion.p>
-                  )}
+                  {pwError   && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-red-400 text-xs font-noto">{pwError}</motion.p>}
+                  {pwSuccess && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-green-400 text-xs font-noto">✓ 비밀번호가 변경되었습니다</motion.p>}
                 </AnimatePresence>
-
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={handlePasswordChange}
+                <motion.button whileTap={{ scale: 0.97 }} onClick={handlePasswordChange}
                   disabled={!currentPw || newPw.length < 6 || newPw !== confirmPw}
-                  className="w-full py-2.5 rounded-xl bg-[#FF69B4] text-black font-bebas text-lg tracking-wide disabled:opacity-40"
-                >
+                  className="w-full py-2.5 rounded-xl bg-[#FF69B4] text-black font-bebas text-lg tracking-wide disabled:opacity-40">
                   비밀번호 변경
                 </motion.button>
               </div>
@@ -889,7 +824,6 @@ function SettingsTab({
         </AnimatePresence>
       </div>
 
-      {/* Account info */}
       <div className="p-3 rounded-xl border border-white/10 bg-white/5 text-center">
         <p className="font-noto text-white/30 text-xs">
           현재 관리자 계정: <span className="text-white/60">{getAdminEmail()}</span>
