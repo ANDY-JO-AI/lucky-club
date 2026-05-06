@@ -144,13 +144,7 @@ export default function GameScreen() {
 
     // ── Timeline ──
 
-    // 1.6 s — result를 SlotReel에 미리 전달 (감속 시작용)
-    later(() => {
-      setTipResult(tip)
-      setDrinkResult(drink)
-    }, 1600)
-
-    // 1.8 s — near miss phase 진입 (이미 result 세팅됨)
+    // 1.8 s — near miss
     later(() => {
       setPhase('nearMiss')
       if (store.config.nearMissEnabled) {
@@ -159,12 +153,13 @@ export default function GameScreen() {
       }
     }, 1800)
 
-    // 2.4 s — TIP revealed
+    // 2.4 s — TIP stops
     later(() => {
       setPhase('tipRevealed')
       stopDrumroll()
       setNearMissTip(null)
       setNearMissDrink(null)
+      setTipResult(tip)
       playSound('slot_stop')
       haptic('light')
       // Celebration delay: show ??? for high/jackpot
@@ -176,6 +171,7 @@ export default function GameScreen() {
     // 2.8 s — DRINK stops
     later(() => {
       setPhase('drinkRevealed')
+      setDrinkResult(drink)
       playSound('slot_stop')
       haptic('light')
       if (drink === 'p100') playSound('siren')

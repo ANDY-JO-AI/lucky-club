@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react'
+﻿import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   TipResult, DrinkResult,
@@ -106,7 +106,7 @@ const SlotReel: React.FC<SlotReelProps> = ({
   // ── 감속 → 최종 snap ─────────────────────────────────────────────────────
   const startDecel = useCallback((finalResult: string) => {
     clearAll()
-    const finalIdx = order.indexOf(finalResult)
+    const finalIdx = (order as string[]).indexOf(finalResult)
     if (finalIdx < 0) return
 
     // 니어미스: 결과 2칸 앞에서 흔들림
