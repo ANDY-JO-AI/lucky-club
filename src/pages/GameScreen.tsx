@@ -33,6 +33,7 @@ export type SpinPhase =
   | 'idle'
   | 'spinning'
   | 'nearMiss'
+type ReelCommand = 'idle' | 'spin' | 'decel' | 'revealed'
   | 'tipRevealed'
   | 'drinkRevealed'
   | 'celebration'
@@ -46,6 +47,8 @@ export default function GameScreen() {
   const [phase, setPhase]                   = useState<SpinPhase>('idle')
   const [tipResult, setTipResult]           = useState<TipResult | null>(null)
   const [drinkResult, setDrinkResult]       = useState<DrinkResult | null>(null)
+  const [drinkCmd, setDrinkCmd] = useState<ReelCommand>('idle')
+  const [tipCmd,   setTipCmd]   = useState<ReelCommand>('idle')
   const [nearMissTip, setNearMissTip]       = useState<TipResult | null>(null)
   const [nearMissDrink, setNearMissDrink]   = useState<DrinkResult | null>(null)
 
@@ -118,6 +121,8 @@ export default function GameScreen() {
     store.setShowMission(false)
 
     haptic('light')
+    setDrinkCmd('spin')
+    setTipCmd('idle')
 
     // ─ Compute result immediately ─
     const { tip, drink } = spinSlots(store.config, store.consecutiveLow)
@@ -144,40 +149,43 @@ export default function GameScreen() {
 
     // ── Timeline ──
 
-    // 1.5 s - DRINK 릴 감속 시작
+    // 1.4 s - DRINK 릴 감속 시작
     later(() => {
       setDrinkResult(drink)
-      setPhase('drinkStopping')
-    }, 1500)
+      setDrinkCmd('decel')
+    }, 1400)
 
-    // 2.2 s - DRINK 확정 + TIP 릴 계속 회전
+    // 2.8 s - DRINK 착지 확정 + TIP 릴 단독 시작
     later(() => {
+      setDrinkCmd('revealed')
       setPhase('drinkRevealed')
       playSound('slot_stop')
       haptic('light')
       if (drink === 'p100') playSound('siren')
       else if (drink === 'p70') playSound('warning_beep')
-    }, 2200)
+    }, 2800)
 
-    // 3.0 s - TIP 릴 감속 시작
+    // 3.6 s - TIP 릴 단독 고속 회전 시작
+    later(() => {
+      setTipCmd('spin')
+      stopDrumroll()
+    }, 3600)
+
+    // 4.4 s - TIP 릴 감속 시작
     later(() => {
       setTipResult(tip)
-      setPhase('tipStopping')
-      stopDrumroll()
-      if ((tipTier === 'jackpot' || tipTier === 'high') && store.config.autoBillboard) {
-        setQuestionMode(true)
-      }
-    }, 3000)
+      setTipCmd('decel')
+    }, 4400)
 
-    // 3.9 s - TIP 확정 공개
+    // 5.8 s - TIP 착지 확정
     later(() => {
+      setTipCmd('revealed')
       setPhase('tipRevealed')
-      setQuestionMode(false)
       setNearMissTip(null)
       setNearMissDrink(null)
       playSound('slot_stop')
       haptic('light')
-    }, 3900)
+    }, 5800)
 
         // 2.8 s + celebDelay — celebration effects
     later(() => {
@@ -311,6 +319,8 @@ export default function GameScreen() {
     setPhase('idle')
     setTipResult(null)
     setDrinkResult(null)
+    setDrinkCmd('idle')
+    setTipCmd('idle')
     setFlashColor(null)
     setCoinRainCount(0)
     setShowParticles(null)
@@ -381,17 +391,15 @@ export default function GameScreen() {
       <div className="flex-1 flex flex-col items-center justify-center px-4 gap-3 py-2">
         <div className="flex gap-3 w-full max-w-sm">
           <SlotReel
-            type="tip"
-            phase={phase}
-            result={tipResult}
-            nearMiss={nearMissTip}
+            type="drink"
+            command={drinkCmd}
+            result={drinkResult}
             className="flex-1"
           />
           <SlotReel
-            type="drink"
-            phase={phase}
-            result={drinkResult}
-            nearMiss={nearMissDrink}
+            type="tip"
+            command={tipCmd}
+            result={tipResult}
             className="flex-1"
           />
         </div>
