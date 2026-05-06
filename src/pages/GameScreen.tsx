@@ -221,6 +221,8 @@ export default function GameScreen() {
           playSound('sad_trombone')
           haptic('strong')
           setShowParticles('skull')
+          later(() => setTeaseMessage(t('teaseCurse')), 200)
+          later(() => setTeaseMessage(null), 3500)
           break
         case 'nothing':
           triggerFlash('#222222', 1)
@@ -248,6 +250,8 @@ export default function GameScreen() {
           haptic('medium')
           setCoinRainCount(20)
           setShowParticles('gold')
+          later(() => setTeaseMessage(t('teaseHigh')), 200)
+          later(() => setTeaseMessage(null), 3500)
           break
         case 'high':
           triggerFlash('#FFD700', 3)
@@ -255,6 +259,8 @@ export default function GameScreen() {
           haptic('strong')
           setCoinRainCount(50)
           setShowParticles('gold')
+          later(() => setTeaseMessage(t('teaseHigh')), 200)
+          later(() => setTeaseMessage(null), 3500)
           break
         case 'jackpot':
           triggerFlash('#FFD700', 10)
@@ -265,6 +271,8 @@ export default function GameScreen() {
           setShowParticles('gold')
           store.incrementJackpot()
           store.resetEscalation()
+          later(() => setTeaseMessage(t('teaseJackpot')), 300)
+          later(() => setTeaseMessage(null), 4000)
           later(() => {
             setShowSocialProof(true)
             later(() => setShowSocialProof(false), 3000)
@@ -386,6 +394,34 @@ export default function GameScreen() {
       {/* Screen flash */}
       <ScreenFlash color={flashColor} count={flashCount} />
 
+      {/* 약올리기 / 축하 메시지 — 화면 상단 고정 오버레이 */}
+      <AnimatePresence>
+        {teaseMessage && (
+          <motion.div
+            key="tease-overlay"
+            initial={{ y: -80, opacity: 0, scale: 0.8 }}
+            animate={{ y: 0, opacity: 1, scale: [0.8, 1.1, 1] }}
+            exit={{ y: -60, opacity: 0, scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 16 }}
+            className="fixed top-16 inset-x-4 z-[9995] flex items-center justify-center pointer-events-none"
+          >
+            <motion.div
+              animate={{ rotate: [-1, 1, -1, 1, 0] }}
+              transition={{ duration: 0.4, repeat: 2 }}
+              className="w-full max-w-sm font-noto font-extrabold text-center text-base px-5 py-3 rounded-2xl border-2"
+              style={{
+                borderColor: teaseMessage.includes('🔥') || teaseMessage.includes('💥') || teaseMessage.includes('👑') ? '#FFD700' : '#ef4444',
+                background:  teaseMessage.includes('🔥') || teaseMessage.includes('💥') || teaseMessage.includes('👑') ? '#1a1200' : '#1a0000',
+                color:       teaseMessage.includes('🔥') || teaseMessage.includes('💥') || teaseMessage.includes('👑') ? '#FFD700' : '#ef4444',
+                boxShadow:   teaseMessage.includes('🔥') || teaseMessage.includes('💥') || teaseMessage.includes('👑') ? '0 0 28px #FFD70088' : '0 0 28px #ef444488',
+              }}
+            >
+              {teaseMessage}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Coin rain */}
       {coinRainCount > 0 && (
         <CoinRain count={coinRainCount} onDone={() => setCoinRainCount(0)} />
@@ -438,28 +474,6 @@ export default function GameScreen() {
               style={{ textShadow: '0 0 20px #FFD700, 0 0 40px #FF8C00' }}
             >
               💰 TIP...?!
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* 약올리기 / 축하 메시지 */}
-        <AnimatePresence>
-          {teaseMessage && (
-            <motion.div
-              key="tease"
-              initial={{ scale: 0.5, opacity: 0, y: 20 }}
-              animate={{ scale: [0.5, 1.2, 1], opacity: 1, y: 0 }}
-              exit={{ scale: 0.8, opacity: 0, y: -10 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 15 }}
-              className="font-noto font-extrabold text-center text-lg px-5 py-3 rounded-2xl border-2"
-              style={{
-                borderColor: teaseMessage.includes('😂') || teaseMessage.includes('ㅋ') || teaseMessage.includes('ha') ? '#ef4444' : '#FFD700',
-                background:  teaseMessage.includes('😂') || teaseMessage.includes('ㅋ') || teaseMessage.includes('ha') ? '#ef444422' : '#FFD70022',
-                color:       teaseMessage.includes('😂') || teaseMessage.includes('ㅋ') || teaseMessage.includes('ha') ? '#ef4444' : '#FFD700',
-                boxShadow:   teaseMessage.includes('😂') || teaseMessage.includes('ㅋ') || teaseMessage.includes('ha') ? '0 0 20px #ef444455' : '0 0 20px #FFD70055',
-              }}
-            >
-              {teaseMessage}
             </motion.div>
           )}
         </AnimatePresence>
