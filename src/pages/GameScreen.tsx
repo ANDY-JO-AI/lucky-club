@@ -144,41 +144,42 @@ export default function GameScreen() {
 
     // ── Timeline ──
 
-    // 1.8 s — near miss
+    // 1.5 s - DRINK 릴 감속 시작
     later(() => {
-      setPhase('nearMiss')
-      if (store.config.nearMissEnabled) {
-        setNearMissTip(TIP_REEL_ORDER[nearTipIdx])
-        setNearMissDrink(DRINK_REEL_ORDER[nearDrinkIdx])
-      }
-    }, 1800)
+      setDrinkResult(drink)
+      setPhase('drinkStopping')
+    }, 1500)
 
-    // 2.4 s — TIP stops
-    later(() => {
-      setPhase('tipRevealed')
-      stopDrumroll()
-      setNearMissTip(null)
-      setNearMissDrink(null)
-      setTipResult(tip)
-      playSound('slot_stop')
-      haptic('light')
-      // Celebration delay: show ??? for high/jackpot
-      if ((tipTier === 'jackpot' || tipTier === 'high') && store.config.autoBillboard) {
-        setQuestionMode(true)
-      }
-    }, 2400)
-
-    // 2.8 s — DRINK stops
+    // 2.2 s - DRINK 확정 + TIP 릴 계속 회전
     later(() => {
       setPhase('drinkRevealed')
-      setDrinkResult(drink)
       playSound('slot_stop')
       haptic('light')
       if (drink === 'p100') playSound('siren')
       else if (drink === 'p70') playSound('warning_beep')
-    }, 2800)
+    }, 2200)
 
-    // 2.8 s + celebDelay — celebration effects
+    // 3.0 s - TIP 릴 감속 시작
+    later(() => {
+      setTipResult(tip)
+      setPhase('tipStopping')
+      stopDrumroll()
+      if ((tipTier === 'jackpot' || tipTier === 'high') && store.config.autoBillboard) {
+        setQuestionMode(true)
+      }
+    }, 3000)
+
+    // 3.9 s - TIP 확정 공개
+    later(() => {
+      setPhase('tipRevealed')
+      setQuestionMode(false)
+      setNearMissTip(null)
+      setNearMissDrink(null)
+      playSound('slot_stop')
+      haptic('light')
+    }, 3900)
+
+        // 2.8 s + celebDelay — celebration effects
     later(() => {
       setPhase('celebration')
       setQuestionMode(false)
@@ -250,7 +251,7 @@ export default function GameScreen() {
         setShowParticles('fire')
         haptic('continuous', 800)
       }
-    }, 2800 + celebDelay)
+    }, 4400 + celebDelay)
 
     // 3.5 s + celebDelay — billboard
     later(() => {
@@ -269,7 +270,7 @@ export default function GameScreen() {
           later(() => setShowBeerSuggestion(false), 3000)
         }, 400)
       }
-    }, 3500 + celebDelay)
+    }, 5100 + celebDelay)
 
     // 4.2 s + celebDelay — compass + mission
     later(() => {
@@ -293,7 +294,7 @@ export default function GameScreen() {
           later(() => store.setShowMission(true), 3000)
         }
       }
-    }, 4200 + celebDelay)
+    }, 5800 + celebDelay)
 
     // Re-spin: auto-reset after billboard
     if (drink === 'respin') {
@@ -301,7 +302,7 @@ export default function GameScreen() {
         playSound('respin')
         store.setShowBillboard(false)
         later(() => resetToIdle(), 600)
-      }, 5200 + celebDelay)
+      }, 5500 + celebDelay)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, store])

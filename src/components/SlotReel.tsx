@@ -10,31 +10,30 @@ import {
 export type SpinPhase =
   | 'idle'
   | 'spinning'
-  | 'nearMiss'
-  | 'stopping'
-  | 'tipRevealed'
+  | 'drinkStopping'
   | 'drinkRevealed'
+  | 'tipStopping'
+  | 'tipRevealed'
   | 'celebration'
   | 'billboard'
 
 interface SlotReelProps {
-  type:      'tip' | 'drink'
-  phase:     SpinPhase
-  result:    TipResult | DrinkResult | null
-  nearMiss?: TipResult | DrinkResult | null
+  type:       'tip' | 'drink'
+  phase:      SpinPhase
+  result:     TipResult | DrinkResult | null
   className?: string
 }
 
 // ─── 상수 ────────────────────────────────────────────────────────────────────
-const CELL_H       = 72
-const VISIBLE      = 5          // 홀수 → 가운데가 결과칸
-const CENTER       = Math.floor(VISIBLE / 2)   // 2
-const FAST_TICK_MS = 50         // 고속 회전 간격
+const CELL_H   = 72
+const VISIBLE  = 5
+const CENTER   = Math.floor(VISIBLE / 2)  // 2
+const FAST_MS  = 48   // 고속 회전 간격
 
-// 감속 스텝 ms — 카지노 실측 기반 (점점 느려짐)
-const DECEL = [60, 90, 130, 180, 250, 340, 460, 600]
+// 감속 스텝 — 카지노 실측 기반 (ms)
+const DECEL = [65, 95, 135, 185, 255, 345, 460, 600]
 
-// ─── 색상 ────────────────────────────────────────────────────────────────────
+// ─── 색상 헬퍼 ───────────────────────────────────────────────────────────────
 function colorOf(type: 'tip' | 'drink', key: string): string {
   if (type === 'tip') {
     const m: Record<string, string> = {
@@ -65,23 +64,21 @@ function buildWindow(order: readonly string[], topIdx: number): string[] {
   )
 }
 
-// topIdx when targetIdx sits at CENTER
 function topForCenter(order: readonly string[], targetIdx: number): number {
   const len = order.length
   return ((targetIdx - CENTER) % len + len) % len
 }
 
 // ─── 컴포넌트 ─────────────────────────────────────────────────────────────────
-const SlotReel: React.FC<SlotReelProps> = ({
-  type, phase, result, nearMiss, className = '',
-}) => {
-  const order  = type === 'tip' ? TIP_REEL_ORDER  : DRINK_REEL_ORDER
-  const labels = type === 'tip' ? TIP_LABELS       : DRINK_LABELS
+const SlotReel: React.FC<SlotReelProps> = ({ type, phase, result, className = '' }) => {
+  const order  = type === 'tip' ? (TIP_REEL_ORDER  as readonly string[]) : (DRINK_REEL_ORDER as readonly string[])
+  const labels = type === 'tip' ? TIP_LABELS : DRINK_LABELS
 
-  const [window, setWindow]   = useState<string[]>(() => buildWindow(order, 0))
+  const [window_, setWindow]  = useState<string[]>(() => buildWindow(order, 0))
   const [revealed, setRevealed] = useState(false)
-  const [flash, setFlash]     = useState(false)
-  const [shimmy, setShimmy]   = useState(false)
+  const [flash,    setFlash]    = useState(false)
+  const [shimmy,   setShimmy]   = useState(false)
+  const [waiting,  setWaiting]  = useState(false)   // DRINK 확정 후 TIP 대기 상태
 
   const topRef      = useRef(0)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -109,40 +106,41 @@ const SlotReel: React.FC<SlotReelProps> = ({
     const finalIdx = (order as string[]).indexOf(finalResult)
     if (finalIdx < 0) return
 
-    // 니어미스: 결과 2칸 앞에서 흔들림
-    const len = order.length
+    const len  = order.length
     const pre1 = ((finalIdx - 2 + len) % len)
     const pre2 = ((finalIdx - 1 + len) % len)
 
-    let step = 0
-    const sequence: Array<{ type: 'snap'; idx: number } | { type: 'tick' }> = [
-      { type: 'snap', idx: pre1 },   // 니어미스 -2
-      { type: 'snap', idx: pre2 },   // 니어미스 -1  (아슬아슬하게 지나침)
-      { type: 'tick' }, { type: 'tick' }, { type: 'tick' }, // 감속 틱
-      { type: 'snap', idx: finalIdx }, // 최종 결과 정확히 착지
+    // 시퀀스: 니어미스 2칸 → 감속 틱 3회 → 최종 착지
+    type Step = { type: 'snap'; idx: number } | { type: 'tick' } | { type: 'final'; idx: number }
+    const seq: Step[] = [
+      { type: 'snap',  idx: pre1   },
+      { type: 'snap',  idx: pre2   },
+      { type: 'tick'               },
+      { type: 'tick'               },
+      { type: 'tick'               },
+      { type: 'final', idx: finalIdx },
     ]
+    const delays = [80, 120, DECEL[3], DECEL[5], DECEL[7], 0]
 
-    const delays = [70, 110, DECEL[2], DECEL[4], DECEL[6], 0]
-
+    let step = 0
     const runNext = () => {
-      if (step >= sequence.length) return
-      const s = sequence[step]
-      if (s.type === 'snap') snapTo(s.idx)
-      else tick()
-
-      step++
-      if (step < sequence.length) {
-        timerRef.current = setTimeout(runNext, delays[step] ?? 100)
-      } else {
-        // 완전히 착지 후 reveal
+      if (step >= seq.length) return
+      const s = seq[step]
+      if (s.type === 'snap')  snapTo(s.idx)
+      else if (s.type === 'tick') tick()
+      else {
+        // 최종 착지
+        snapTo(s.idx)
         setRevealed(true)
         setShimmy(true)
         setTimeout(() => setShimmy(false), 500)
         setFlash(true)
-        setTimeout(() => setFlash(false), 300)
+        setTimeout(() => setFlash(false), 320)
+        return
       }
+      step++
+      timerRef.current = setTimeout(runNext, delays[step] ?? 120)
     }
-
     timerRef.current = setTimeout(runNext, 0)
   }, [order, clearAll, snapTo, tick])
 
@@ -152,6 +150,7 @@ const SlotReel: React.FC<SlotReelProps> = ({
       clearAll()
       setRevealed(false)
       setFlash(false)
+      setWaiting(false)
       topRef.current = 0
       setWindow(buildWindow(order, 0))
       return
@@ -160,22 +159,39 @@ const SlotReel: React.FC<SlotReelProps> = ({
     if (phase === 'spinning') {
       clearAll()
       setRevealed(false)
-      intervalRef.current = setInterval(tick, FAST_TICK_MS)
+      setWaiting(false)
+      intervalRef.current = setInterval(tick, FAST_MS)
       return
     }
 
-    // nearMiss / stopping / tipRevealed / drinkRevealed 모두
-    // result가 세팅된 시점에 감속 시작
-    if (
-      phase === 'nearMiss' ||
-      phase === 'stopping' ||
-      phase === 'tipRevealed' ||
-      phase === 'drinkRevealed'
-    ) {
-      if (result) {
-        clearAll()  // 고속 인터벌 중단
-        startDecel(result as string)
-      }
+    // DRINK 릴: drinkStopping phase에 감속 시작
+    if (type === 'drink' && phase === 'drinkStopping' && result) {
+      startDecel(result as string)
+      return
+    }
+
+    // DRINK 릴: drinkRevealed phase — 고속 정지 상태 유지 (이미 revealed)
+    if (type === 'drink' && phase === 'drinkRevealed') {
+      // 이미 revealed 처리됨 — 아무것도 안 함
+      return
+    }
+
+    // TIP 릴: drinkRevealed 구간에는 계속 고속 회전 유지 + 대기 표시
+    if (type === 'tip' && phase === 'drinkRevealed') {
+      setWaiting(true)
+      // 고속 회전 유지 (spinning에서 이미 시작된 interval 그대로)
+      return
+    }
+
+    // TIP 릴: tipStopping phase에 감속 시작
+    if (type === 'tip' && phase === 'tipStopping' && result) {
+      setWaiting(false)
+      startDecel(result as string)
+      return
+    }
+
+    // tipRevealed 이후 — 이미 revealed 상태 유지
+    if (phase === 'tipRevealed' || phase === 'celebration' || phase === 'billboard') {
       return
     }
 
@@ -184,11 +200,9 @@ const SlotReel: React.FC<SlotReelProps> = ({
   }, [phase, result])
 
   // ── 색상 계산 ─────────────────────────────────────────────────────────────
-  const centerItem   = window[CENTER]
-  const centerColor  = colorOf(type, centerItem)
-  const resultColor  = result ? colorOf(type, result as string) : '#6b7280'
-  const borderColor  = revealed ? resultColor : '#374151'
-  const glowColor    = revealed ? resultColor : 'transparent'
+  const resultColor = result ? colorOf(type, result as string) : '#6b7280'
+  const borderColor = revealed ? resultColor : (waiting ? '#fbbf2466' : '#374151')
+  const glowColor   = revealed ? resultColor : 'transparent'
 
   return (
     <div className={`relative flex flex-col items-center select-none ${className}`}>
@@ -200,15 +214,16 @@ const SlotReel: React.FC<SlotReelProps> = ({
 
       {/* 릴 윈도우 */}
       <div
-        className="relative overflow-hidden rounded-2xl border-2"
+        className="relative overflow-hidden rounded-2xl border-2 transition-all duration-300"
         style={{
           width: 130,
           height: CELL_H * VISIBLE,
           borderColor,
           boxShadow: revealed
-            ? `0 0 28px ${glowColor}88, 0 0 8px ${glowColor}44`
-            : '0 4px 20px #0009',
-          transition: 'border-color 0.25s, box-shadow 0.25s',
+            ? `0 0 32px ${glowColor}99, 0 0 10px ${glowColor}55`
+            : waiting
+              ? '0 0 18px #fbbf2444'
+              : '0 4px 20px #0009',
           background: '#0d1117',
         }}
       >
@@ -227,7 +242,7 @@ const SlotReel: React.FC<SlotReelProps> = ({
           style={{
             top: CENTER * CELL_H + 4,
             height: CELL_H - 8,
-            border: `2px solid ${revealed ? resultColor : '#4b556388'}`,
+            border: `2px solid ${revealed ? resultColor : waiting ? '#fbbf2455' : '#4b556344'}`,
             background: revealed ? `${resultColor}14` : 'transparent',
             transition: 'border-color 0.2s, background 0.2s',
             margin: '0 4px',
@@ -236,16 +251,16 @@ const SlotReel: React.FC<SlotReelProps> = ({
 
         {/* 아이템 목록 */}
         <motion.div
-          animate={shimmy ? { x: [-5, 5, -4, 4, -2, 2, 0] } : { x: 0 }}
+          animate={shimmy ? { x: [-6, 6, -4, 4, -2, 2, 0] } : { x: 0 }}
           transition={{ duration: 0.45, ease: 'easeOut' }}
         >
-          {window.map((item, i) => {
+          {window_.map((item, i) => {
             const isCenter = i === CENTER
             const iColor   = colorOf(type, item)
             const dist     = Math.abs(i - CENTER)
             const blur     = revealed ? 0 : dist * 1.8
             const scale    = isCenter && revealed ? 1.1 : 1
-            const opacity  = isCenter ? 1 : Math.max(0.3, 1 - dist * 0.25)
+            const opacity  = isCenter ? 1 : Math.max(0.25, 1 - dist * 0.28)
 
             return (
               <div
@@ -277,12 +292,33 @@ const SlotReel: React.FC<SlotReelProps> = ({
           {flash && result && (
             <motion.div
               key="flash"
-              initial={{ opacity: 0.65 }}
+              initial={{ opacity: 0.7 }}
               animate={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.32 }}
               className="absolute inset-0 z-30 rounded-2xl pointer-events-none"
               style={{ background: resultColor }}
             />
+          )}
+        </AnimatePresence>
+
+        {/* TIP 대기 중 — "?" 펄스 오버레이 */}
+        <AnimatePresence>
+          {waiting && type === 'tip' && (
+            <motion.div
+              key="waiting"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0.4, 0.9, 0.4] }}
+              transition={{ duration: 0.9, repeat: Infinity }}
+              className="absolute inset-x-0 z-25 flex items-center justify-center pointer-events-none"
+              style={{ top: CENTER * CELL_H, height: CELL_H }}
+            >
+              <span
+                className="font-bebas text-3xl"
+                style={{ color: '#fbbf24', textShadow: '0 0 12px #fbbf24' }}
+              >
+                ???
+              </span>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
