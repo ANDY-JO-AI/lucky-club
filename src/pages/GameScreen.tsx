@@ -477,7 +477,7 @@ export default function GameScreen() {
             command={tipCmd}
           reelOrder={shuffledTipReel}
           escalation={escalation}
-          tierReveal={tierReveal}
+          tierReveal={tipResult}
             result={tipResult}
             className="flex-1"
           />
@@ -700,3 +700,4 @@ function AdSlotPlaceholder({ onClose }: { onClose: () => void }) {
     </motion.div>
   )
 }
+

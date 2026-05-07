@@ -41,8 +41,8 @@ const TIP_DECEL_STEPS = [
   { delay: 140 },   // pre5
   { delay: 260 },   // pre4 — 슬슬 느려짐
   { delay: 440 },   // pre3 — "이번 칸인가?"
-  { delay: 400  },  // pre2 — 거의 멈춤
-  { delay: 700  },  // pre1 — 약올리기 절정
+  { delay: 200  },  // pre2 — 거의 멈춤
+  { delay: 350  },  // pre1 — 약올리기 절정
 ]
 
 const ESCALATION_COLORS = [
@@ -452,6 +452,7 @@ const SlotReel: React.FC<SlotReelProps> = ({
 }
 
 export default SlotReel
+
 
 
 
