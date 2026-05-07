@@ -89,7 +89,7 @@ const TIP_SYMBOL_POOL = [
   '💀','🎰 SMALL','🎰 SMALL','🎰 MID','🎰 MID',
   '🎰 BIG','🎰 BIG','🎰 MEGA','🎰 MEGA','🎉 JACKPOT',
 ]
-const DRINK_SYMBOL_POOL = ['🍺','🍺🍺','🍺🍺','🍺🍺🍺','🍺🍺🍺🍺','🍺🍺🍺🍺']
+const DRINK_SYMBOL_POOL = ['p25','p50','p50','p70','p70','p100']
 
 function randomSymbol(type: 'tip' | 'drink'): string {
   const pool = type === 'tip' ? TIP_SYMBOL_POOL : DRINK_SYMBOL_POOL
@@ -343,11 +343,12 @@ const SlotReel: React.FC<SlotReelProps> = ({
             const blur     = 0
             const scale    = isCenter && revealed ? 1.15 : 1
             const isSpinning = !revealed
+            const isActiveSpinning = isSpinning && command === 'spin'
             const opacity    = isCenter
               ? 1
-              : revealed
-                ? Math.max(0.55, 1 - dist * 0.15)
-                : (type === 'tip') ? 0 : Math.max(0.55, 1 - dist * 0.15)
+              : (type === 'tip' && isActiveSpinning)
+                ? 0
+                : Math.max(0.55, 1 - dist * 0.15)
 
             return (
               <div
