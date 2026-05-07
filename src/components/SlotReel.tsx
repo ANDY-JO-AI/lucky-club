@@ -7,17 +7,15 @@ import {
 } from '../types/game'
 
 export type ReelCommand = 'idle' | 'spin' | 'decel' | 'revealed'
-export type SpinPhase =
-  | 'idle' | 'spinning' | 'drinkStopping' | 'drinkRevealed'
-  | 'tipStopping' | 'tipRevealed' | 'celebration' | 'billboard'
-  | 'nearMiss' | 'stopping'
 
 interface SlotReelProps {
-  type:       'tip' | 'drink'
-  command:    ReelCommand
-  result:     TipResult | DrinkResult | null
-  className?: string
-  onLanded?:  () => void
+  type:        'tip' | 'drink'
+  command:     ReelCommand
+  result:      TipResult | DrinkResult | null
+  className?:  string
+  onLanded?:   () => void
+  escalation?: number
+  tierReveal?: string | null
 }
 
 const CELL_H  = 72
@@ -44,6 +42,21 @@ const TIP_DECEL_STEPS = [
   { delay: 440 },   // pre3 — "이번 칸인가?"
   { delay: 1200 },  // pre2 — 거의 멈춤... 근데 또 넘어감 😱
   { delay: 2500 },  // pre1 — 진짜 멈출 것 같음... 약올리기 절정
+]
+
+const ESCALATION_COLORS = [
+  'transparent',
+  '#fbbf24',
+  '#f97316',
+  '#ef4444',
+  '#dc2626',
+]
+const ESCALATION_LABELS = [
+  '',
+  '⚡ 슬슬 터질 것 같은데?',
+  '🔥 이번엔 진짜다!!',
+  '💥 폭발 직전!!',
+  '👑 이번엔 무조건 터진다!!!',
 ]
 
 function colorOf(type: 'tip' | 'drink', key: string): string {
@@ -80,6 +93,7 @@ function topForCenter(order: readonly string[], targetIdx: number): number {
 
 const SlotReel: React.FC<SlotReelProps> = ({
   type, command, result, className = '', onLanded,
+  escalation = 0, tierReveal = null,
 }) => {
   const order  = type === 'tip'
     ? (TIP_REEL_ORDER  as readonly string[])
@@ -195,6 +209,9 @@ const SlotReel: React.FC<SlotReelProps> = ({
 
   const resultColor = result ? colorOf(type, result as string) : '#6b7280'
   const teaseColor  = '#fbbf24'
+
+  const escColor = ESCALATION_COLORS[Math.min(escalation, 4)]
+  const escLabel = ESCALATION_LABELS[Math.min(escalation, 4)]
 
   return (
     <div className={`relative flex flex-col items-center select-none ${className}`}>
@@ -333,6 +350,38 @@ const SlotReel: React.FC<SlotReelProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+      {/* Escalation 긴장 게이지 라벨 */}
+      {escalation > 0 && (
+        <div
+          style={{ color: escColor }}
+          className="text-xs font-black text-center mt-1 animate-pulse tracking-tight"
+        >
+          {escLabel}
+        </div>
+      )}
+
+      {/* Tier Reveal 심볼 오버레이 */}
+      {tierReveal && type === 'tip' && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none">
+          <div
+            className="text-5xl animate-bounce"
+            style={{ filter: 'drop-shadow(0 0 12px gold)' }}
+          >
+            {tierReveal === 'curse'   ? '💀' :
+             tierReveal === 'low'     ? '🥉' :
+             tierReveal === 'mid'     ? '🥈' :
+             tierReveal === 'high'    ? '🥇' :
+             tierReveal === 'jackpot' ? '💎' : ''}
+          </div>
+          <div className="text-xs font-bold text-white mt-1 opacity-80">
+            {tierReveal === 'curse'   ? '저주...' :
+             tierReveal === 'low'     ? '소액' :
+             tierReveal === 'mid'     ? '중간' :
+             tierReveal === 'high'    ? '고액!' :
+             tierReveal === 'jackpot' ? 'JACKPOT!!!' : ''}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

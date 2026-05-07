@@ -7,7 +7,7 @@ import { TipResult, DrinkResult } from '../types/game'
 type SpinPhase = 'idle' | 'spinning' | 'nearMiss' | 'stopping' | 'tipRevealed' | 'drinkRevealed' | 'celebration' | 'billboard'
 
 interface SpinButtonProps {
-  phase: SpinPhase
+  phase: string
   onSpin: () => void
   tipResult: TipResult | null
   drinkResult: DrinkResult | null

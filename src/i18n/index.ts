@@ -118,7 +118,7 @@ const ko = {
     teaseMid: '😏 아쉽다~ 50,000₫ 바로 앞에서 탈락! 억울하면 한 판 더?',
     teaseCurse: '💀 저주 걸렸다ㅋㅋㅋ 메롱~ 😜 다음엔 잘 되겠지?',
     teaseHigh: '🔥🔥 오!! 50,000₫ 이상!! 오늘 운 좋은데?!',
-    teaseJackpot: '💥👑 JACKPOT!!! 축하해요!! 오늘 주인공이네!!'
+    teaseJackpot: '💥👑 JACKPOT!!! 축하해요!! 오늘 주인공이네!!',
     holdForJackpot: '잭팟은 직접 닫아주세요',
     dismiss: '닫기',
   }
@@ -239,7 +239,7 @@ const en = {
     teaseMid: '😏 So close to 50,000₫... but NOPE! Mad? Play again!',
     teaseCurse: '💀 Cursed!! Hahaha~ 😜 Better luck next time!',
     teaseHigh: '🔥🔥 WOAH!! Over 50,000₫!! You got lucky today!',
-    teaseJackpot: '💥👑 JACKPOT!!! CONGRATULATIONS!! You are the star!!'
+    teaseJackpot: '💥👑 JACKPOT!!! CONGRATULATIONS!! You are the star!!',
     holdForJackpot: 'Dismiss jackpot manually',
     dismiss: 'Close',
   }
@@ -360,7 +360,7 @@ const vi = {
     teaseMid: '😏 Gần 50,000₫ lắm rồi... mà KHÔNG! Tức không? Chơi tiếp!',
     teaseCurse: '💀 Bị nguyền rủa rồi~ 😜 Lần sau sẽ khác!',
     teaseHigh: '🔥🔥 Ồ!! Trên 50,000₫!! Hôm nay may mắn đấy!',
-    teaseJackpot: '💥👑 JACKPOT!!! CHÚC MỪNG!! Bạn là ngôi sao hôm nay!!'
+    teaseJackpot: '💥👑 JACKPOT!!! CHÚC MỪNG!! Bạn là ngôi sao hôm nay!!',
     holdForJackpot: 'Tắt jackpot thủ công',
     dismiss: 'Đóng',
   }

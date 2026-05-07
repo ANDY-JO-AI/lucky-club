@@ -15,7 +15,7 @@ import {
 } from '../types/game'
 import { recordSpin } from '../lib/firebaseService'
 import TopBar from '../components/TopBar'
-import SlotReel from '../components/SlotReel'
+import SlotReel, { type ReelCommand } from '../components/SlotReel'
 import SpinButton from '../components/SpinButton'
 import Billboard from '../components/Billboard'
 import CompassWheel from '../components/CompassWheel'
@@ -29,15 +29,10 @@ import StreakCounter from '../components/StreakCounter'
 import InstallBanner from '../components/InstallBanner'
 import { DEFAULT_MISSIONS_KARAOKE } from '../lib/missions'
 
-export type SpinPhase =
-  | 'idle'
-  | 'spinning'
-  | 'nearMiss'
-type ReelCommand = 'idle' | 'spin' | 'decel' | 'revealed'
-  | 'tipRevealed'
-  | 'drinkRevealed'
-  | 'celebration'
-  | 'billboard'
+type SpinPhase =
+  | 'idle' | 'spinning' | 'drinkStopping' | 'drinkRevealed'
+  | 'tipStopping' | 'tipRevealed' | 'celebration' | 'billboard'
+  | 'nearMiss' | 'stopping'
 
 export default function GameScreen() {
   const { t } = useTranslation()
@@ -64,6 +59,12 @@ export default function GameScreen() {
   const [showSocialProof, setShowSocialProof] = useState(false)
   const [coinRainCount, setCoinRainCount]   = useState(0)
   const [questionMode, setQuestionMode]     = useState(false)
+  // ── Addiction Engine States ──────────────────────────────
+  const [pityCnt,     setPityCnt]     = useState(0)
+  const [escalation,  setEscalation]  = useState(0)
+  const [spinHistory, setSpinHistory] = useState<string[]>([])
+  const [tierReveal,  setTierReveal]  = useState<string|null>(null)
+  const [countUpVal,  setCountUpVal]  = useState(0)
   const [teaseMessage, setTeaseMessage]     = useState<string | null>(null)
   const [showBeerSuggestion, setShowBeerSuggestion] = useState(false)
 
@@ -132,6 +133,7 @@ export default function GameScreen() {
 
     // Pre-compute tier & timing
     const tipTier    = getTipTier(tip)
+    const tipAmount  = tip === 'nothing' ? 0 : parseInt(tip.replace('t',''), 10)
     const celebDelay = tipTier === 'jackpot' ? 800 : tipTier === 'high' ? 600 : 0
     const isJackpot  = tipTier === 'jackpot'
 
@@ -190,6 +192,19 @@ export default function GameScreen() {
     later(() => {
       setTipCmd('revealed')
       setPhase('tipRevealed')
+      // Tier Reveal: 심볼 먼저 표시
+      setTierReveal(tipTier)
+      // 카운트업: 0 → 최종 금액 (1.2초)
+      const target = tipAmount
+      if (target > 0) {
+        let cur = 0
+        const step = Math.ceil(target / 24)
+        const iv = setInterval(() => {
+          cur = Math.min(cur + step, target)
+          setCountUpVal(cur)
+          if (cur >= target) clearInterval(iv)
+        }, 50)
+      }
       setQuestionMode(false)
       stopTipTension()
       setNearMissTip(null)
