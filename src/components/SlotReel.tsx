@@ -63,7 +63,7 @@ const ESCALATION_LABELS = [
 // 티어 심볼 매핑 — 금액 대신 심볼로만 표시
 function tipToSymbol(key: string): string {
   if (key === 'nothing')  return '💀'
-  if (key === 'jackpot')  return '🎉 JACKPOT'
+  if (key === 'jackpot')   return '🎉 JACKPOT'
   if (key === 'w200k')    return '🎰 MEGA'
   if (key === 'w100k')    return '🎰 MEGA'
   if (key === 'w50k')     return '🎰 BIG'
@@ -87,9 +87,9 @@ function tipToSymbol(key: string): string {
 // 랜덤 회전용 심볼 풀 — 순서 예측 완전 차단
 const TIP_SYMBOL_POOL = [
   '💀','🎰 SMALL','🎰 SMALL','🎰 MID','🎰 MID',
-  '🎰 BIG','🎰 BIG','🎰 MEGA','🎉 JACKPOT',
+  '🎰 BIG','🎰 BIG','🎰 MEGA','🎰 MEGA','🎉 JACKPOT',
 ]
-const DRINK_SYMBOL_POOL = ['🥤','🍺','🍺','🔥','🔥','💥']
+const DRINK_SYMBOL_POOL = ['25%','50%','50%','70%','70%','100%']
 
 function randomSymbol(type: 'tip' | 'drink'): string {
   const pool = type === 'tip' ? TIP_SYMBOL_POOL : DRINK_SYMBOL_POOL
