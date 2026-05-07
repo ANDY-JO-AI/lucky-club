@@ -67,9 +67,9 @@ function tipToSymbol(key: string): string {
   if (key === 'w200k')    return '🎰 MEGA'
   if (key === 'w100k')    return '🎰 MEGA'
   if (key === 'w50k')     return '🎰 BIG'
-  if (key === 'w20k')     return '🎰 BIG'
-  if (key === 'w10k')     return '🎰 MID'
-  if (key === 'w5k')      return '🎰 MID'
+  if (key === 'w20k')     return '🎰 MID'
+  if (key === 'w10k')     return '🎰 SMALL'
+  if (key === 'w5k')      return '🎰 SMALL'
   if (key === 'w2k')      return '🎰 SMALL'
   if (key === 'w1k')      return '🎰 SMALL'
   return '🎰'
@@ -82,6 +82,18 @@ function drinkToSymbol(key: string): string {
   if (key === 'p25')    return '🥤'
   if (key === 'respin') return '🔄'
   return '🍶'
+}
+
+// 랜덤 회전용 심볼 풀 — 순서 예측 완전 차단
+const TIP_SYMBOL_POOL = [
+  '💀','🎰 SMALL','🎰 SMALL','🎰 MID','🎰 MID',
+  '🎰 BIG','🎰 BIG','🎰 MEGA','🎉 JACKPOT',
+]
+const DRINK_SYMBOL_POOL = ['🥤','🍺','🍺','🔥','🔥','💥']
+
+function randomSymbol(type: 'tip' | 'drink'): string {
+  const pool = type === 'tip' ? TIP_SYMBOL_POOL : DRINK_SYMBOL_POOL
+  return pool[Math.floor(Math.random() * pool.length)]
 }
 
 function colorOf(type: 'tip' | 'drink', key: string): string {
@@ -128,8 +140,11 @@ const SlotReel: React.FC<SlotReelProps> = ({
       : (DRINK_REEL_ORDER as readonly string[])
   const labels = type === 'tip' ? TIP_LABELS : DRINK_LABELS
 
-  const [window_,  setWindow]   = useState<string[]>(() => buildWindow(order, 0))
-  const [revealed, setRevealed] = useState(false)
+  const [window_,  setWindow]   = useState<string[]>(() =>
+    Array.from({ length: VISIBLE }, () => randomSymbol(type))
+  )
+  const [revealed,   setRevealed]   = useState(false)
+  const [decelStep,  setDecelStep]  = useState(0)   // 감속 단계 (마지막 2칸 흐림용)
   const [flash,    setFlash]    = useState(false)
   const [shimmy,   setShimmy]   = useState(false)
   const [glowing,  setGlowing]  = useState(false)
@@ -146,14 +161,23 @@ const SlotReel: React.FC<SlotReelProps> = ({
   }, [])
 
   const tick = useCallback(() => {
-    topRef.current = (topRef.current + 1) % order.length
-    setWindow(buildWindow(order, topRef.current))
-  }, [order])
+    // 고속 회전 중: 완전 랜덤 심볼 표시 — 순서 예측 불가
+    setWindow(prev => {
+      const next = [...prev.slice(1), randomSymbol(type)]
+      return next
+    })
+  }, [type])
 
   const snapTo = useCallback((targetIdx: number) => {
     topRef.current = topForCenter(order, targetIdx)
-    setWindow(buildWindow(order, topRef.current))
-  }, [order])
+    // 감속 중 앞뒤 칸도 랜덤 심볼 유지 — 중앙만 실제 심볼
+    const centerKey = order[targetIdx % order.length]
+    setWindow(prev =>
+      prev.map((_, i) =>
+        i === CENTER ? centerKey : randomSymbol(type)
+      )
+    )
+  }, [order, type])
 
   const startDecel = useCallback((finalResult: string) => {
     clearAll()
@@ -200,6 +224,7 @@ const SlotReel: React.FC<SlotReelProps> = ({
         setTimeout(() => setTeasePulse(false), s.delay * 0.9)
       }
 
+      setDecelStep(step)
       step++
       timerRef.current = setTimeout(runNext, s.delay)
     }
@@ -214,8 +239,9 @@ const SlotReel: React.FC<SlotReelProps> = ({
       setFlash(false)
       setGlowing(false)
       setTeasePulse(false)
+      setDecelStep(0)
       topRef.current = 0
-      setWindow(buildWindow(order, 0))
+      setWindow(Array.from({ length: VISIBLE }, () => randomSymbol(type)))
       return
     }
     if (command === 'spin') {
@@ -223,6 +249,7 @@ const SlotReel: React.FC<SlotReelProps> = ({
       setRevealed(false)
       setGlowing(false)
       setTeasePulse(false)
+      setDecelStep(0)
       intervalRef.current = setInterval(tick, FAST_MS)
       return
     }
