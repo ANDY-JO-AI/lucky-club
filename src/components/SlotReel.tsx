@@ -382,7 +382,7 @@ const SlotReel: React.FC<SlotReelProps> = ({
         </div>
       )}
 
-      {tierReveal && type === 'tip' && (
+      {tierReveal && type === 'tip' && revealed && (
         <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none">
           <div className="text-5xl animate-bounce" style={{ filter: 'drop-shadow(0 0 12px gold)' }}>
             {tipToSymbol(tierReveal)}
@@ -398,3 +398,4 @@ const SlotReel: React.FC<SlotReelProps> = ({
 }
 
 export default SlotReel
+
