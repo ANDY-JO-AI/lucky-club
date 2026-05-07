@@ -41,8 +41,8 @@ const TIP_DECEL_STEPS = [
   { delay: 140 },   // pre5
   { delay: 260 },   // pre4 — 슬슬 느려짐
   { delay: 440 },   // pre3 — "이번 칸인가?"
-  { delay: 1200 },  // pre2 — 거의 멈춤... 근데 또 넘어감 😱
-  { delay: 2500 },  // pre1 — 진짜 멈출 것 같음... 약올리기 절정
+  { delay: 400  },  // pre2 — 거의 멈춤
+  { delay: 700  },  // pre1 — 약올리기 절정
 ]
 
 const ESCALATION_COLORS = [
@@ -111,11 +111,11 @@ function colorOf(type: 'tip' | 'drink', key: string): string {
     return m[key] ?? '#6b7280'
   }
   const m: Record<string, string> = {
-    p25: '🍺 25%', p50: '🍺🍺 50%',
-    p70: '🍺🍺🍺 75%', p100: '🍺🍺🍺🍺 ONE SHOT!!',
-    respin: '#fbbf24',
-  }
-  return m[key] ?? '#6b7280'
+    p25: '#87CEEB',
+    p50: '#FFA500',
+    p70: '#FF6B00',
+    p100: '#FF4500',
+    respin: '#39FF14',
 }
 
 function buildWindow(order: readonly string[], topIdx: number): string[] {
@@ -452,3 +452,6 @@ const SlotReel: React.FC<SlotReelProps> = ({
 }
 
 export default SlotReel
+
+
+
