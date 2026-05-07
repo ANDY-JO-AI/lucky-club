@@ -406,6 +406,17 @@ export default function GameScreen() {
 
   // ── Ad slot trigger ──
   const showAd = store.adSpinCounter >= 10
+  // ── Karaoke 탭 → CasinoSlot 렌더링
+  if (store.category === 'karaoke') {
+    return (
+      <div className="min-h-screen bg-black flex flex-col overflow-hidden relative select-none">
+        <TopBar onSettingsOpen={() => setShowSettings(true)} onPlayerCountEdit={() => setShowPlayerCount(false)} />
+        <CategorySelector current={store.category} onSelect={handleCategorySelect} />
+        <CasinoSlot />
+      </div>
+    )
+  }
+
 
   return (
     <div className="min-h-screen bg-black flex flex-col overflow-hidden relative select-none">
