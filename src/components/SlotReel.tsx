@@ -75,14 +75,14 @@ function tipToSymbol(key: string): string {
   return '🎰'
 }
 
-function drinkToSymbol(key: string): string {
-  if (key === 'p100')   return '💥'
-  if (key === 'p70')    return '🔥'
-  if (key === 'p50')    return '🍺'
-  if (key === 'p25')    return '🥤'
-  if (key === 'respin') return '🔄'
-  return '🍶'
-}
+
+
+
+
+
+
+
+
 
 // 랜덤 회전용 심볼 풀 — 순서 예측 완전 차단
 const TIP_SYMBOL_POOL = [
@@ -405,7 +405,7 @@ const SlotReel: React.FC<SlotReelProps> = ({
           >
             {type === 'tip'
               ? tipToSymbol(result as string)
-              : `${drinkToSymbol(result as string)} ${labels[result as keyof typeof labels] ?? result}`}
+              : (labels[result as keyof typeof labels] ?? result)}
           </motion.div>
         )}
       </AnimatePresence>
