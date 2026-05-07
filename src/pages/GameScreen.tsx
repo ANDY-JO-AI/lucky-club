@@ -29,6 +29,7 @@ import ScreenFlash from '../components/ScreenFlash'
 import StreakCounter from '../components/StreakCounter'
 import InstallBanner from '../components/InstallBanner'
 import { DEFAULT_MISSIONS_KARAOKE } from '../lib/missions'
+import CasinoSlot from './CasinoSlot'
 
 type SpinPhase =
   | 'idle' | 'spinning' | 'drinkStopping' | 'drinkRevealed'
@@ -700,4 +701,5 @@ function AdSlotPlaceholder({ onClose }: { onClose: () => void }) {
     </motion.div>
   )
 }
+
 
