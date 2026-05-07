@@ -89,7 +89,7 @@ const TIP_SYMBOL_POOL = [
   '💀','🎰 SMALL','🎰 SMALL','🎰 MID','🎰 MID',
   '🎰 BIG','🎰 BIG','🎰 MEGA','🎰 MEGA','🎉 JACKPOT',
 ]
-const DRINK_SYMBOL_POOL = ['25%','50%','50%','70%','70%','100%']
+const DRINK_SYMBOL_POOL = ['🍺','🍺🍺','🍺🍺','🍺🍺🍺','🍺🍺🍺🍺','🍺🍺🍺🍺']
 
 function randomSymbol(type: 'tip' | 'drink'): string {
   const pool = type === 'tip' ? TIP_SYMBOL_POOL : DRINK_SYMBOL_POOL
@@ -111,8 +111,8 @@ function colorOf(type: 'tip' | 'drink', key: string): string {
     return m[key] ?? '#6b7280'
   }
   const m: Record<string, string> = {
-    p25: '#34d399', p50: '#38bdf8',
-    p70: '#a78bfa', p100: '#f472b6',
+    p25: '🍺 25%', p50: '🍺🍺 50%',
+    p70: '🍺🍺🍺 75%', p100: '🍺🍺🍺🍺 ONE SHOT!!',
     respin: '#fbbf24',
   }
   return m[key] ?? '#6b7280'
@@ -345,7 +345,9 @@ const SlotReel: React.FC<SlotReelProps> = ({
             const isSpinning = !revealed
             const opacity    = isCenter
               ? 1
-              : (type === 'tip' && isSpinning) ? 0 : Math.max(0.55, 1 - dist * 0.15)
+              : revealed
+                ? Math.max(0.55, 1 - dist * 0.15)
+                : (type === 'tip') ? 0 : Math.max(0.55, 1 - dist * 0.15)
 
             return (
               <div
