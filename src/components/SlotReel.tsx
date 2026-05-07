@@ -342,7 +342,10 @@ const SlotReel: React.FC<SlotReelProps> = ({
             const dist     = Math.abs(i - CENTER)
             const blur     = 0
             const scale    = isCenter && revealed ? 1.15 : 1
-            const opacity  = isCenter ? 1 : Math.max(0.55, 1 - dist * 0.15)
+            const isSpinning = !revealed
+            const opacity    = isCenter
+              ? 1
+              : (type === 'tip' && isSpinning) ? 0 : Math.max(0.55, 1 - dist * 0.15)
 
             return (
               <div
