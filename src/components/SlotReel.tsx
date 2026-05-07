@@ -60,6 +60,30 @@ const ESCALATION_LABELS = [
   '👑 이번엔 무조건 터진다!!!',
 ]
 
+// 티어 심볼 매핑 — 금액 대신 심볼로만 표시
+function tipToSymbol(key: string): string {
+  if (key === 'nothing')  return '💀'
+  if (key === 'jackpot')  return '💎'
+  if (key === 'w200k')    return '💎'
+  if (key === 'w100k')    return '🥇'
+  if (key === 'w50k')     return '🥇'
+  if (key === 'w20k')     return '🥈'
+  if (key === 'w10k')     return '🥈'
+  if (key === 'w5k')      return '🥉'
+  if (key === 'w2k')      return '🥉'
+  if (key === 'w1k')      return '🥉'
+  return '🎰'
+}
+
+function drinkToSymbol(key: string): string {
+  if (key === 'p100')   return '💥'
+  if (key === 'p70')    return '🔥'
+  if (key === 'p50')    return '🍺'
+  if (key === 'p25')    return '🥤'
+  if (key === 'respin') return '🔄'
+  return '🍶'
+}
+
 function colorOf(type: 'tip' | 'drink', key: string): string {
   if (type === 'tip') {
     const m: Record<string, string> = {
@@ -314,7 +338,9 @@ const SlotReel: React.FC<SlotReelProps> = ({
                   userSelect: 'none',
                 }}
               >
-                {labels[item as keyof typeof labels] ?? item}
+                {type === 'tip'
+                  ? tipToSymbol(item)
+                  : drinkToSymbol(item)}
               </div>
             )
           })}
@@ -350,7 +376,19 @@ const SlotReel: React.FC<SlotReelProps> = ({
               boxShadow: `0 0 22px ${resultColor}cc`,
             }}
           >
-            {labels[result as keyof typeof labels] ?? result}
+            {type === 'tip'
+              ? `${tipToSymbol(result as string)} ${
+                  result === 'jackpot' ? 'JACKPOT!' :
+                  result === 'w200k'   ? '전설급!!' :
+                  result === 'w100k'   ? '고액!' :
+                  result === 'w50k'    ? '고액!' :
+                  result === 'w20k'    ? '중간' :
+                  result === 'w10k'    ? '중간' :
+                  result === 'w5k'     ? '소액' :
+                  result === 'w2k'     ? '소액' :
+                  result === 'w1k'     ? '소액' :
+                  result === 'nothing' ? '저주...' : ''}`
+              : `${drinkToSymbol(result as string)} ${labels[result as keyof typeof labels] ?? result}`}
           </motion.div>
         )}
       </AnimatePresence>
