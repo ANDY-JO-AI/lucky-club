@@ -340,7 +340,7 @@ const SlotReel: React.FC<SlotReelProps> = ({
               >
                 {type === 'tip'
                   ? tipToSymbol(item)
-                  : drinkToSymbol(item)}
+                  : (labels[item as keyof typeof labels] ?? item)}
               </div>
             )
           })}
