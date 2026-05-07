@@ -14,6 +14,7 @@ interface SlotReelProps {
   result:      TipResult | DrinkResult | null
   className?:  string
   onLanded?:   () => void
+  reelOrder?:  string[]
   escalation?: number
   tierReveal?: string | null
 }
@@ -93,11 +94,14 @@ function topForCenter(order: readonly string[], targetIdx: number): number {
 
 const SlotReel: React.FC<SlotReelProps> = ({
   type, command, result, className = '', onLanded,
+  reelOrder,
   escalation = 0, tierReveal = null,
 }) => {
-  const order  = type === 'tip'
-    ? (TIP_REEL_ORDER  as readonly string[])
-    : (DRINK_REEL_ORDER as readonly string[])
+  const order  = reelOrder && reelOrder.length > 0
+    ? reelOrder
+    : type === 'tip'
+      ? (TIP_REEL_ORDER  as readonly string[])
+      : (DRINK_REEL_ORDER as readonly string[])
   const labels = type === 'tip' ? TIP_LABELS : DRINK_LABELS
 
   const [window_,  setWindow]   = useState<string[]>(() => buildWindow(order, 0))

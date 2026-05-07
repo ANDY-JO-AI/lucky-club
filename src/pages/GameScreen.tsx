@@ -7,6 +7,7 @@ import { useGameStore } from '../store/gameStore'
 import {
   spinSlots, getCompassTarget, shouldTriggerMission,
   getMissionLevel, getEscalationParams,
+  shuffledTipReel, shuffledDrinkReel,
 } from '../lib/casino'
 import { startDrumroll, stopDrumroll, startTipTension, stopTipTension, playSound, haptic, torchStrobe } from '../lib/sounds'
 import {
@@ -465,12 +466,16 @@ export default function GameScreen() {
           <SlotReel
             type="drink"
             command={drinkCmd}
+          reelOrder={shuffledDrinkReel}
             result={drinkResult}
             className="flex-1"
           />
           <SlotReel
             type="tip"
             command={tipCmd}
+          reelOrder={shuffledTipReel}
+          escalation={escalation}
+          tierReveal={tierReveal}
             result={tipResult}
             className="flex-1"
           />
