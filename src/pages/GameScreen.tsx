@@ -126,6 +126,8 @@ export default function GameScreen() {
     haptic('light')
     setDrinkCmd('spin')
     setTipCmd('idle')
+    setTierReveal(null)
+    setCountUpVal(0)
     setTipResult(null)
     setDrinkResult(null)
 

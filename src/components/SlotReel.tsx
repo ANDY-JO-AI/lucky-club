@@ -63,15 +63,15 @@ const ESCALATION_LABELS = [
 // 티어 심볼 매핑 — 금액 대신 심볼로만 표시
 function tipToSymbol(key: string): string {
   if (key === 'nothing')  return '💀'
-  if (key === 'jackpot')  return '💎'
-  if (key === 'w200k')    return '💎'
-  if (key === 'w100k')    return '🥇'
-  if (key === 'w50k')     return '🥇'
-  if (key === 'w20k')     return '🥈'
-  if (key === 'w10k')     return '🥈'
-  if (key === 'w5k')      return '🥉'
-  if (key === 'w2k')      return '🥉'
-  if (key === 'w1k')      return '🥉'
+  if (key === 'jackpot')  return '🎉 JACKPOT'
+  if (key === 'w200k')    return '🎰 MEGA'
+  if (key === 'w100k')    return '🎰 MEGA'
+  if (key === 'w50k')     return '🎰 BIG'
+  if (key === 'w20k')     return '🎰 BIG'
+  if (key === 'w10k')     return '🎰 MID'
+  if (key === 'w5k')      return '🎰 MID'
+  if (key === 'w2k')      return '🎰 SMALL'
+  if (key === 'w1k')      return '🎰 SMALL'
   return '🎰'
 }
 
@@ -377,17 +377,7 @@ const SlotReel: React.FC<SlotReelProps> = ({
             }}
           >
             {type === 'tip'
-              ? `${tipToSymbol(result as string)} ${
-                  result === 'jackpot' ? 'JACKPOT!' :
-                  result === 'w200k'   ? '전설급!!' :
-                  result === 'w100k'   ? '고액!' :
-                  result === 'w50k'    ? '고액!' :
-                  result === 'w20k'    ? '중간' :
-                  result === 'w10k'    ? '중간' :
-                  result === 'w5k'     ? '소액' :
-                  result === 'w2k'     ? '소액' :
-                  result === 'w1k'     ? '소액' :
-                  result === 'nothing' ? '저주...' : ''}`
+              ? tipToSymbol(result as string)
               : `${drinkToSymbol(result as string)} ${labels[result as keyof typeof labels] ?? result}`}
           </motion.div>
         )}
@@ -410,17 +400,17 @@ const SlotReel: React.FC<SlotReelProps> = ({
             style={{ filter: 'drop-shadow(0 0 12px gold)' }}
           >
             {tierReveal === 'curse'   ? '💀' :
-             tierReveal === 'low'     ? '🥉' :
-             tierReveal === 'mid'     ? '🥈' :
-             tierReveal === 'high'    ? '🥇' :
-             tierReveal === 'jackpot' ? '💎' : ''}
+             tierReveal === 'low'     ? '🎰 SMALL' :
+             tierReveal === 'mid'     ? '🎰 MID' :
+             tierReveal === 'high'    ? '🎰 BIG' :
+             tierReveal === 'jackpot' ? '🎉 JACKPOT' : ''}
           </div>
           <div className="text-xs font-bold text-white mt-1 opacity-80">
-            {tierReveal === 'curse'   ? '저주...' :
-             tierReveal === 'low'     ? '소액' :
-             tierReveal === 'mid'     ? '중간' :
-             tierReveal === 'high'    ? '고액!' :
-             tierReveal === 'jackpot' ? 'JACKPOT!!!' : ''}
+            {tierReveal === 'curse'   ? '💀 저주...' :
+             tierReveal === 'low'     ? 'SMALL' :
+             tierReveal === 'mid'     ? 'MID' :
+             tierReveal === 'high'    ? 'BIG' :
+             tierReveal === 'jackpot' ? '🎉 JACKPOT!!!' : ''}
           </div>
         </div>
       )}
